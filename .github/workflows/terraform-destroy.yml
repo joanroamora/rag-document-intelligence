@@ -56,6 +56,7 @@ jobs:
 
       - name: Cleanup Terraform State Bucket for 100% Zero Cost
         run: |
-          echo "Deleting Terraform state bucket to eliminate all lingering storage costs..."
-          gcloud storage rm --recursive gs://bitcitychamp-project-tfstate || true
+          echo "Deleting Terraform state bucket non-interactively..."
+          gcloud storage buckets delete gs://bitcitychamp-project-tfstate --quiet || true
           echo "GCP resources have been completely wiped to zero cost."
+
