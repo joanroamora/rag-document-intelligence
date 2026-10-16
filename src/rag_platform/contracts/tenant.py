@@ -49,3 +49,18 @@ class TenantScope(BaseModel):
         if self.document_id is not None:
             filters["document_id"] = self.document_id
         return filters
+
+    def matches_filter(
+        self,
+        *,
+        tenant_id: str,
+        project_id: str,
+        case_id: str | None = None,
+        document_id: str | None = None,
+    ) -> bool:
+        """Verify whether a candidate record satisfies this multi-tenant authorization scope."""
+        if tenant_id != self.tenant_id or project_id != self.project_id:
+            return False
+        if self.case_id is not None and case_id != self.case_id:
+            return False
+        return not (self.document_id is not None and document_id != self.document_id)
