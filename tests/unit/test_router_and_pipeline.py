@@ -149,7 +149,10 @@ def test_router_initial_route_selection() -> None:
         digital_char_count=450,
         anomaly_ratio=0.01,
     )
-    assert router.select_initial_route(diag_a).selected_route == ExtractionRoute.ROUTE_A_DIGITAL_TEXT
+    assert (
+        router.select_initial_route(diag_a).selected_route
+        == ExtractionRoute.ROUTE_A_DIGITAL_TEXT
+    )
 
     # Standard scanned page -> Route B
     diag_b = PageDiagnostic(page_number=2, has_digital_text_layer=False)
@@ -164,7 +167,10 @@ def test_router_initial_route_selection() -> None:
         has_digital_text_layer=False,
         is_degraded_or_handwritten=True,
     )
-    assert router.select_initial_route(diag_c).selected_route == ExtractionRoute.ROUTE_C_ENHANCED_OCR
+    assert (
+        router.select_initial_route(diag_c).selected_route
+        == ExtractionRoute.ROUTE_C_ENHANCED_OCR
+    )
 
     # Page with tables or diagrams -> Route D (Gemini Flash)
     diag_d = PageDiagnostic(
