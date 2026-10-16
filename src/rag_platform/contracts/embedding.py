@@ -39,12 +39,15 @@ def assert_embedding_compatibility(
         or query_signature.chunking_version != index_signature.chunking_version
     ):
         raise EmbeddingIncompatibilityError(
-            f"Incompatible embedding spaces: query ({query_signature.embedding_provider}/"
-            f"{query_signature.embedding_model}@{query_signature.embedding_model_version}, "
-            f"dim={query_signature.embedding_dimension}, chunk={query_signature.chunking_version}) "
-            f"!= index ({index_signature.embedding_provider}/"
-            f"{index_signature.embedding_model}@{index_signature.embedding_model_version}, "
-            f"dim={index_signature.embedding_dimension}, chunk={index_signature.chunking_version})"
+            f"Incompatible embedding spaces:\n"
+            f"  query: provider={query_signature.embedding_provider}, "
+            f"model={query_signature.embedding_model}@{query_signature.embedding_model_version}, "
+            f"dim={query_signature.embedding_dimension}, "
+            f"chunk_ver={query_signature.chunking_version}\n"
+            f"  index: provider={index_signature.embedding_provider}, "
+            f"model={index_signature.embedding_model}@{index_signature.embedding_model_version}, "
+            f"dim={index_signature.embedding_dimension}, "
+            f"chunk_ver={index_signature.chunking_version}"
         )
 
 
