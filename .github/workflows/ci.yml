@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Enforce Feature<N>: commit prefix
+      - name: "Enforce Feature<N>: commit prefix"
         run: |
           COMMIT_MSG=$(git log -1 --pretty=%s)
           echo "Checking commit subject: $COMMIT_MSG"
