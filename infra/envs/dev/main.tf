@@ -5,10 +5,11 @@ module "identity" {
 }
 
 module "storage" {
-  source      = "../../modules/storage"
-  project_id  = var.project_id
-  environment = var.environment
-  region      = var.region
+  source        = "../../modules/storage"
+  project_id    = var.project_id
+  environment   = var.environment
+  region        = var.region
+  force_destroy = true
 }
 
 module "compute" {
