@@ -8,10 +8,17 @@ variable "environment" {
   description = "Deployment environment"
 }
 
+resource "google_project_service" "iam" {
+  project            = var.project_id
+  service            = "iam.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_service_account" "worker" {
   account_id   = "rag-worker-${var.environment}"
   display_name = "RAG Worker Service Account (${var.environment})"
   project      = var.project_id
+  depends_on   = [google_project_service.iam]
 }
 
 output "worker_service_account_id" {

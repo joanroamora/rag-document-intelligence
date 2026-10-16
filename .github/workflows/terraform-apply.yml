@@ -32,6 +32,11 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Enable Required GCP APIs
+        run: |
+          echo "Enabling IAM, Cloud Run, and Storage APIs in GCP..."
+          gcloud services enable iam.googleapis.com run.googleapis.com storage.googleapis.com --project=bitcitychamp-project || true
+
       - name: Ensure Remote State Bucket Exists
         run: |
           if ! gcloud storage buckets describe gs://bitcitychamp-project-tfstate >/dev/null 2>&1; then
