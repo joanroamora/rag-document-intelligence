@@ -115,7 +115,7 @@ class DeterministicHashEmbedder:
                 tokens = [text.strip().lower()]
 
             for token in tokens:
-                digest = hashlib.sha256(token.encode("utf-8")).digest()
+                digest = hashlib.sha256(token.encode()).digest()
                 bucket = int.from_bytes(digest[:4], "big") % dim
                 sign = 1.0 if (digest[4] % 2 == 0) else -1.0
                 vec[bucket] += sign
@@ -123,7 +123,7 @@ class DeterministicHashEmbedder:
             # Guarantee non-zero vector even if token signs cancel out
             if all(v == 0.0 for v in vec):
                 fallback_hash = hashlib.sha256(
-                    f"{task_type}:{text}".encode("utf-8")
+                    f"{task_type}:{text}".encode()
                 ).digest()
                 vec[fallback_hash[0] % dim] = 1.0
 
