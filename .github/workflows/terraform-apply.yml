@@ -1,0 +1,42 @@
+name: IaC — Terraform Apply (Deploy DEV Infrastructure)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: "Environment to deploy"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+
+jobs:
+  terraform-apply:
+    name: Deploy GCP Infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Terraform Init
+        working-directory: infra/envs/${{ inputs.target_env }}
+        run: terraform init -backend=false
+
+      - name: Terraform Plan
+        working-directory: infra/envs/${{ inputs.target_env }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: infra/envs/${{ inputs.target_env }}
+        run: terraform apply -auto-approve tfplan

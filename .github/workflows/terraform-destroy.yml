@@ -46,4 +46,4 @@ jobs:
         working-directory: infra/envs/${{ inputs.target_env }}
         run: |
           echo "Running terraform destroy for environment: ${{ inputs.target_env }}"
-          echo "All buckets with force_destroy=true and serverless resources will be terminated."
+          terraform destroy -auto-approve

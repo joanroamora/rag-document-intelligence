@@ -1,7 +1,7 @@
 variable "project_id" {
   type        = string
   description = "GCP Project ID for DEV environment"
-  default     = "rag-platform-dev-placeholder"
+  default     = "bitcitychamp-project"
 }
 
 variable "region" {
