@@ -16,7 +16,10 @@ class RetrievalMode(StrEnum):
 
 
 class QueryBudget(BaseModel):
-    """Strict operational limits for Agentic Retrieval to prevent runaway loops and quota exhaustion."""
+    """Strict operational limits for Agentic Retrieval.
+
+    Prevents runaway loops and quota exhaustion.
+    """
 
     max_iterations: int = Field(default=3, ge=1, le=10)
     max_subqueries: int = Field(default=5, ge=1, le=20)
