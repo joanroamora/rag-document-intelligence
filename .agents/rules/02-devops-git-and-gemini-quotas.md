@@ -61,27 +61,34 @@ description: "Reglas obligatorias de DevOps, CI/CD, Terraform IaC, formato de Co
   9. Build de imagen o artefacto **una sola vez** tras aprobar controles; publicar en Artifact Registry con tag de versión + SHA y desplegar mediante **digest inmutable**.
 - **Promoción CD:** no reconstruir imágenes diferentes por ambiente; promover el mismo digest inmutable cambiando solo configuración/secretos autorizados.
 
-## 4. Gobierno Git y Formato Obligatorio de Commits (Conventional Commits)
+## 4. Estrategia de Ramas (Branching Model) y Formato Obligatorio de Commits
 
-Todo commit y título de PR (en caso de squash merge) debe cumplir estrictamente el formato:
+### 4.1 Estrategia de Ramas
+
+- **`main`:** Rama principal y de producción. Contiene código estable y probado.
+- **`dev`:** Rama base de desarrollo e integración previa a producción. Todos los cambios deben pasar y validarse en `dev` antes de ser promovidos a `main`.
+- **Ramas de trabajo (`Feature<N>-<descripcion>` o `Feature<N>/<descripcion>`):** Ramas dedicadas exclusivamente a cada tarea, funcionalidad o módulo específico (ej. `Feature1-ci-pipeline`, `Feature2-document-router`). Se ramifican desde `dev`.
+  - *Nota técnica sobre nombres en Git:* Debido a que Git no permite dos puntos `:` ni espacios en nombres de ramas (`git check-ref-format`), se usan guiones `-` o barras `/` en la nomenclatura de la rama (`Feature1-nombre` o `Feature1/nombre`).
+
+### 4.2 Política Estricta de Autorización de Merges
+
+- **PROHIBIDO hacer merge hacia `dev` o hacia `main` sin la autorización previa y explícita del usuario.**
+- Toda integración a `dev` debe solicitarse y ser aprobada antes de ejecutarse.
+- Toda promoción de `dev` a `main` requiere aprobación final.
+
+### 4.3 Formato Obligatorio de Commits
+
+Todo commit debe mencionar obligatoriamente el identificador del Feature en el que se está trabajando al inicio del mensaje:
 
 ```text
-<type>(<scope>): <short imperative description>
+Feature<N>: <descripcion>
 ```
 
-- **Tipos permitidos (`type`):** `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`, `chore`, `revert`.
-- **Scopes permitidos (`scope`):** `ingestion`, `ocr`, `chunking`, `embeddings`, `indexing`, `retrieval`, `generation`, `api`, `web`, `infra`, `security`, `observability`, `deps`, `docs` (extensible mediante PR documentado).
-- **Reglas estrictas:**
-  - `type` y `scope` obligatorios, en minúsculas.
-  - Descripción obligatoria, en verbo imperativo, concisa y **sin punto final**.
-  - Asunto de **máximo 72 caracteres**.
-  - Prohibidos commits genéricos como `update`, `changes` o `fix stuff`.
-  - Para breaking changes, usar `!` antes de `:` y un cuerpo con `BREAKING CHANGE:`.
-- **Ejemplos válidos:**
-  - `feat(ingestion): add page-level extraction routing`
-  - `fix(retrieval): enforce tenant filters before search`
-  - `ci(infra): validate terraform plans on pull requests`
-  - `test(embeddings): add multilingual retrieval benchmark`
+- **Ejemplo estándar:** `Feature1: Updating ci pipeline.`
+- **Variante con Conventional Commits:** `Feature1: ci(pipeline): configure automated tests`
+- **Reglas:**
+  - El prefijo `Feature<N>:` es mandatorio en cada commit para trazabilidad directa de la tarea.
+  - Prohibidos mensajes genéricos como `update`, `changes` o `fix`.
 
 ## 5. Integración de Gemini API Free Tier y Control de Cuotas (v0.6)
 

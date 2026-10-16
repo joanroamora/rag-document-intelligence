@@ -29,5 +29,8 @@ Este repositorio implementa una plataforma RAG documental multiformato con evide
 5. **Contratos modulares y compatibilidad de embeddings:**
    - Respetar los contratos de datos versionados entre Módulos 1, 2, 3 y 4.
    - La consulta siempre debe vectorizarse con el **mismo modelo y versión compatible** que el índice consultado.
-6. **Gobierno Git (Conventional Commits):**
-   - Formato obligatorio: `<type>(<scope>): <short imperative description>` (máx. 72 caracteres, minúsculas, sin punto final).
+6. **Estrategia de ramas y formato de commits:**
+   - Ramas principales: `main` (producción) y `dev` (integración previa a `main`).
+   - Ramas de trabajo: `Feature<N>-<descripcion>` (o `Feature<N>/<descripcion>`), derivadas de `dev`.
+   - **Merges a `dev` y a `main` únicamente bajo autorización explícita.**
+   - Formato obligatorio de commit: debe iniciar siempre con el identificador de la Feature: `Feature<N>: <descripción>` (ej. `Feature1: Updating ci pipeline`).
