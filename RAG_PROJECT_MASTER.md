@@ -11,7 +11,7 @@ Construir un RAG documental **multiformato**, capaz de responder preguntas preci
 - Interfaz web amigable; backend desacoplado para habilitar en el futuro una aplicación de escritorio.
 - Formatos iniciales: **PDF, DOCX, RTF y TXT**, extensibles.
 - Soporte para documentos grandes y heterogéneos: texto digital, escaneos, mecanografiados antiguos, manuscritos, tablas, imágenes, páginas mixtas o deterioradas.
-- Despliegue inicial en **Google Cloud Platform (GCP)** con recursos limitados por la prueba gratuita.
+- Despliegue y ejecución **100% en Google Cloud Platform (GCP) y GitHub Actions** con recursos limitados por la prueba gratuita (cero cómputo en la máquina local del desarrollador; el equipo local se usa exclusivamente para montar el repositorio y hacer push a remoto).
 - Un stack inicial, preparado para concurrencia y para replicarse mediante **Infrastructure as Code (IaC)** para otros clientes.
 
 ## 2. Arquitectura general por módulos
@@ -52,9 +52,9 @@ La selección se hará **por página** y, cuando sea útil, **por bloque de cont
 
 | Ruta | Situación | Técnica candidata |
 |---|---|---|
-| A | PDF/documento con texto digital | Extracción directa |
-| B | Escaneo legible | OCR open source en Python |
-| C | Manuscrito, mecanografía degradada o OCR insuficiente | Preprocesamiento de imagen y segunda pasada de OCR local; si persiste baja calidad, escalar a Gemini |
+| A | PDF/documento con texto digital | Extracción directa en contenedor GCP |
+| B | Escaneo legible | OCR open source en Python (ejecutado en contenedor GCP) |
+| C | Manuscrito, mecanografía degradada o OCR insuficiente | Preprocesamiento de imagen y segunda pasada de OCR en contenedor GCP; si persiste baja calidad, escalar a Gemini |
 | D | Tablas, diagramas e imágenes que requieran interpretación | **Gemini Flash**, modelo multimodal eficiente disponible en el plan gratuito de Gemini API, verificado en tiempo de implementación |
 | E | Páginas o regiones extremadamente deterioradas con extracción convencional fallida | **Gemini Pro**, elegir el de mayor capacidad adecuada a la tarea que esté disponible para la cuenta; sujeto a cuotas y acceso real del Free Tier |
 

@@ -1,14 +1,17 @@
 ---
 trigger: always_on
-description: "Directiva obligatoria de aislamiento de entorno y dependencias: prohíbe instalaciones globales en el host y exige entornos locales (.venv, npx, Docker)."
+description: "Directiva obligatoria de Cero Cómputo Local (Cloud-Only Execution) y aislamiento estricto del host."
 ---
 
-# Directiva de aislamiento de entorno y dependencias
+# Directiva de Cero Cómputo Local (Cloud-Only Execution) y Aislamiento del Host
 
-- Prohibido realizar instalaciones globales en el sistema operativo host.
-- Nunca ejecutes comandos con flags globales (como `npm install -g`, `pip install --user`, `gem install`, etc.) ni uses `sudo` para instalar paquetes.
-- Todo paquete, herramienta o runtime debe ser confinado estrictamente al directorio de trabajo local del proyecto.
-- Si se requiere una herramienta CLI (por ejemplo, linters, formatters, test runners), ejecútala a través de wrappers de entorno local:
-  - **En Node.js/JavaScript:** Usa dependencias locales en `devDependencies` y ejecútalas con `npx` o scripts en `package.json`.
-  - **En Python:** Trabaja únicamente dentro de un entorno virtual activo (`.venv`). Si no existe, créalo (`python3 -m venv .venv` o `python -m venv .venv`), actívalo y usa `./.venv/bin/pip` (o `.\.venv\Scripts\pip` en Windows) o `uv`/`poetry`/`pipenv` local.
-  - **En contenedores:** Si se requieren herramientas a nivel de sistema, encapsúlalas dentro de un `Dockerfile` / `docker-compose.yml` local sin tocar el host.
+1. **Uso exclusivo del equipo local como estación de código y Git:**
+   - El equipo local **NO** se utilizará para ejecutar el proyecto, levantar servidores, correr modelos, procesar documentos ni ejecutar contenedores o pruebas.
+   - La máquina local se usa **únicamente para estructurar/editar el código y empujar (push) el repositorio a remoto (GitHub)**.
+2. **Ejecución 100% remota (GitHub Actions + GCP):**
+   - Toda validación, linting, pruebas unitarias/integración, construcción de imágenes Docker (`Build`) y planificación de infraestructura (`Terraform`) se ejecutará en **GitHub Actions / Cloud Build**.
+   - Todo el procesamiento del sistema RAG (ingesta, OCR open-source, chunking, embeddings, indexación, búsqueda y generación) correrá exclusivamente sobre recursos de **Google Cloud Platform (GCP)**.
+3. **Prohibición absoluta de instalaciones en el host local:**
+   - Prohibido instalar paquetes, runtimes, librerías de Python/Node o herramientas CLI en el sistema operativo local (ni globales ni locales pesados).
+   - Todas las dependencias deben declararse de forma declarativa en archivos del repositorio (`pyproject.toml`, `requirements.txt`, `package.json`, `Dockerfile`, manifiestos de Terraform y workflows de `.github/workflows/`) para ser aprovisionadas e instanciadas únicamente en la nube.
+

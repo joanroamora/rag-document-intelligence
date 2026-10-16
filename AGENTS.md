@@ -6,17 +6,16 @@ Este repositorio implementa una plataforma RAG documental multiformato con evide
 
 - **Documento Maestro de Arquitectura:** `@RAG_PROJECT_MASTER.md`
 - **Reglas modulares activas (`.agents/rules/`):**
-  - `@.agents/rules/00-environment-isolation.md` — Directiva obligatoria de aislamiento de entorno y dependencias.
+  - `@.agents/rules/00-environment-isolation.md` — Directiva obligatoria de Cero Cómputo Local (Cloud-Only Execution) y aislamiento del host.
   - `@.agents/rules/01-project-architecture-and-rag.md` — Arquitectura por módulos (1–4), seguridad epistemológica y contratos de datos.
-  - `@.agents/rules/02-devops-git-and-gemini-quotas.md` — DevOps, CI/CD, Terraform IaC, Conventional Commits y cuotas del Free Tier de Gemini API.
+  - `@.agents/rules/02-devops-git-and-gemini-quotas.md` — DevOps, CI/CD, Terraform IaC, estrategia de ramas/commits y cuotas del Free Tier de Gemini API.
 
 ## 2. Invariantes Críticas de Trabajo
 
-1. **Aislamiento estricto de entorno y dependencias:**
-   - Prohibido realizar instalaciones globales en el sistema operativo host (`npm install -g`, `pip install --user`, `gem install`, `sudo`, etc.).
-   - En **Python**, trabajar exclusivamente dentro de `.venv` local.
-   - En **Node.js**, usar `devDependencies` locales y ejecutar con `npx` o scripts de `package.json`.
-   - Herramientas de sistema deben encapsularse en contenedores (`Dockerfile` / `docker-compose.yml`).
+1. **Cero Cómputo Local (Cloud-Only Execution) y aislamiento del host:**
+   - **El equipo local NO se usará para ejecutar el proyecto** (ni pruebas, ni modelos, ni servidores, ni contenedores); su único rol es estructurar/editar los archivos del repositorio y empujarlos (`git push`) a remoto.
+   - **Prohibido instalar paquetes o dependencias en la máquina local.**
+   - Toda validación, linting, test, build y plan de infraestructura se ejecuta en **GitHub Actions / Cloud Build**, y todo el runtime del sistema RAG corre exclusivamente en **Google Cloud Platform (GCP)**.
 2. **Seguridad epistemológica y fidelidad documental:**
    - Separar siempre **texto observado**, **pasajes inciertos** e **hipótesis inferidas por contexto**.
    - Jamás inventar citas ni presentar deducciones como transcripción cierta; registrar `ilegible` o incertidumbre explícita cuando corresponda.
