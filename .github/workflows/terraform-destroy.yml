@@ -38,9 +38,15 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Enable Required APIs for Teardown
+        run: |
+          echo "Enabling Cloud Resource Manager and IAM APIs in GCP..."
+          gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com --project=bitcitychamp-project || true
+
       - name: Terraform Init
         working-directory: infra/envs/${{ inputs.target_env }}
         run: terraform init
+
 
       - name: Terraform Destroy (Clean Tear Down)
         working-directory: infra/envs/${{ inputs.target_env }}

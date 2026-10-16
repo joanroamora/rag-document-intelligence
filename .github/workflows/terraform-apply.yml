@@ -35,7 +35,7 @@ jobs:
       - name: Enable Required GCP APIs
         run: |
           echo "Enabling IAM, Cloud Run, and Storage APIs in GCP..."
-          gcloud services enable iam.googleapis.com run.googleapis.com storage.googleapis.com --project=bitcitychamp-project || true
+          gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com run.googleapis.com storage.googleapis.com --project=bitcitychamp-project || true
 
       - name: Ensure Remote State Bucket Exists
         run: |
