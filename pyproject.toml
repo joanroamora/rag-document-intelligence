@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-platform"
+version = "0.1.0"
+description = "Cloud-native multi-format document RAG platform with verifiable evidence and Gemini orchestration"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Joan Ricardo Roa Mora", email = "joanroamora@gmail.com" }
+]
+dependencies = [
+    "pydantic>=2.7.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0,<9.0.0",
+    "pytest-cov>=5.0.0,<6.0.0",
+    "ruff>=0.6.0,<1.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

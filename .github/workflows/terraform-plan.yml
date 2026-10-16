@@ -1,0 +1,42 @@
+name: IaC — Terraform Format & Validate
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - "Feature*"
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-plan.yml"
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-plan.yml"
+
+jobs:
+  terraform-validate:
+    name: Terraform Fmt & Validate (DEV)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive infra/
+
+      - name: Terraform Init (Backend Disabled for Validation)
+        working-directory: infra/envs/dev
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: infra/envs/dev
+        run: terraform validate
