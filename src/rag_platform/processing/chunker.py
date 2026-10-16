@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 from rag_platform.contracts import (
     BoundingBox,
     ChunkRecord,
-    ExtractionRoute,
     HumanReviewStatus,
     NormalizedBlock,
     NormalizedDocument,
