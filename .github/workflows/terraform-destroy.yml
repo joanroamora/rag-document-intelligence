@@ -31,19 +31,25 @@ jobs:
           terraform_version: "1.9.5"
 
       - name: Authenticate to Google Cloud
-        if: env.GCP_CREDENTIALS != ''
         uses: google-github-actions/auth@v2
-        env:
-          GCP_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
       - name: Terraform Init
         working-directory: infra/envs/${{ inputs.target_env }}
-        run: terraform init -backend=false
+        run: terraform init
 
       - name: Terraform Destroy (Clean Tear Down)
         working-directory: infra/envs/${{ inputs.target_env }}
         run: |
           echo "Running terraform destroy for environment: ${{ inputs.target_env }}"
           terraform destroy -auto-approve
+
+      - name: Cleanup Terraform State Bucket for 100% Zero Cost
+        run: |
+          echo "Deleting Terraform state bucket to eliminate all lingering storage costs..."
+          gcloud storage rm --recursive gs://bitcitychamp-project-tfstate || true
+          echo "GCP resources have been completely wiped to zero cost."

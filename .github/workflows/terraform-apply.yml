@@ -29,9 +29,21 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Ensure Remote State Bucket Exists
+        run: |
+          if ! gcloud storage buckets describe gs://bitcitychamp-project-tfstate >/dev/null 2>&1; then
+            echo "Creating Terraform state bucket..."
+            gcloud storage buckets create gs://bitcitychamp-project-tfstate --project=bitcitychamp-project --location=us-central1 --uniform-bucket-level-access
+          else
+            echo "Terraform state bucket already exists."
+          fi
+
       - name: Terraform Init
         working-directory: infra/envs/${{ inputs.target_env }}
-        run: terraform init -backend=false
+        run: terraform init
 
       - name: Terraform Plan
         working-directory: infra/envs/${{ inputs.target_env }}

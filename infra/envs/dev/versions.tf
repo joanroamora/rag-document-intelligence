@@ -7,6 +7,11 @@ terraform {
       version = "~> 5.40"
     }
   }
+
+  backend "gcs" {
+    bucket = "bitcitychamp-project-tfstate"
+    prefix = "env/dev"
+  }
 }
 
 provider "google" {
