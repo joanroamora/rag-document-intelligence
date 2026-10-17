@@ -56,10 +56,41 @@ jobs:
           DIGEST=$(gcloud artifacts docker images describe "$IMAGE_URI" --format='get(image_summary.digest)')
           echo "IMMUTABLE_IMAGE=${GCP_REGION}-docker.pkg.dev/${RESOLVED_PROJECT_ID}/${AR_REPO}/rag-api@${DIGEST}" >> "$GITHUB_ENV"
 
+      - name: Configure Cloud Run Runtime Service Account and Permissions
+        run: |
+          RUN_SA="rag-worker-dev@${RESOLVED_PROJECT_ID}.iam.gserviceaccount.com"
+          if ! gcloud iam service-accounts describe "$RUN_SA" --project="$RESOLVED_PROJECT_ID" >/dev/null 2>&1; then
+            echo "Creating dedicated runtime service account $RUN_SA..."
+            gcloud iam service-accounts create "rag-worker-dev" \
+              --display-name="RAG Worker Runtime Service Account" \
+              --project="$RESOLVED_PROJECT_ID"
+          fi
+          echo "RUN_SA=$RUN_SA" >> "$GITHUB_ENV"
+
+          GHA_SA="github-actions-sa@${RESOLVED_PROJECT_ID}.iam.gserviceaccount.com"
+          echo "Authorizing $GHA_SA to act as $RUN_SA (roles/iam.serviceAccountUser)..."
+          gcloud iam service-accounts add-iam-policy-binding "$RUN_SA" \
+            --member="serviceAccount:${GHA_SA}" \
+            --role="roles/iam.serviceAccountUser" \
+            --project="$RESOLVED_PROJECT_ID" --quiet || true
+
+          # Grant Storage Object Admin to runtime SA so it can access document buckets
+          gcloud projects add-iam-policy-binding "$RESOLVED_PROJECT_ID" \
+            --member="serviceAccount:${RUN_SA}" \
+            --role="roles/storage.objectAdmin" --quiet || true
+
+          # Also grant roles/iam.serviceAccountUser on default compute SA
+          PROJECT_NUM=$(gcloud projects describe "$RESOLVED_PROJECT_ID" --format='value(projectNumber)')
+          gcloud iam service-accounts add-iam-policy-binding "${PROJECT_NUM}-compute@developer.gserviceaccount.com" \
+            --member="serviceAccount:${GHA_SA}" \
+            --role="roles/iam.serviceAccountUser" \
+            --project="$RESOLVED_PROJECT_ID" --quiet || true
+
       - name: Deploy Service to Cloud Run (Scale-to-Zero Free Tier Friendly)
         run: |
           gcloud run deploy "$SERVICE_NAME" \
             --image="$IMMUTABLE_IMAGE" \
+            --service-account="$RUN_SA" \
             --region="$GCP_REGION" \
             --project="$RESOLVED_PROJECT_ID" \
             --platform=managed \
