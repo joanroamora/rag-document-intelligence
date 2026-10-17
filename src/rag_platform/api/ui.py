@@ -697,44 +697,67 @@ ENTERPRISE_UI_HTML = r"""<!DOCTYPE html>
     if (!file) return;
     const label = document.getElementById("dropzone-label");
     const badge = document.getElementById("file-badge");
+    const container = document.getElementById("results-area");
     label.textContent = "⏳ Subiendo " + file.name + "...";
     badge.textContent = "SUBIENDO";
+    badge.style.color = "#93c5fd";
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const base64Data = reader.result;
-        const res = await fetch("/v1/documents/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Tenant-Id": state.tenantId,
-            "X-Project-Id": state.projectId
-          },
-          body: JSON.stringify({
-            filename: file.name,
-            content_base64: base64Data,
-            force_multimodal_route_d: document.getElementById("toggle-routed").checked
-          })
-        });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("force_multimodal_route_d", document.getElementById("toggle-routed").checked);
 
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.detail || "Formato no soportado");
-        }
+    try {
+      const res = await fetch("/v1/documents/upload-file", {
+        method: "POST",
+        headers: {
+          "X-Tenant-Id": state.tenantId,
+          "X-Project-Id": state.projectId
+        },
+        body: formData
+      });
 
-        const data = await res.json();
-        label.textContent = "✓ " + file.name + " (" + data.total_pages + " págs)";
-        badge.textContent = data.chunks_indexed + " CHUNKS";
-        showToast("✓ Archivo indexado: " + data.chunks_indexed + " chunks");
-        await refreshHealth();
-      } catch (err) {
-        label.textContent = "Subir archivo PDF o TXT";
-        badge.textContent = "ERROR";
-        showToast("Error: " + err.message, true);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Error al procesar el archivo");
       }
-    };
-    reader.readAsDataURL(file);
+
+      const data = await res.json();
+      label.textContent = "✓ " + file.name + " (" + data.total_pages + " págs)";
+      badge.textContent = data.chunks_indexed + " CHUNKS";
+      badge.style.color = "var(--emerald)";
+      showToast("✓ Archivo indexado: " + data.chunks_indexed + " chunks");
+
+      const queryInput = document.getElementById("query-input");
+      if (queryInput.value.includes("cláusula penal")) {
+        queryInput.value = "¿De qué trata este documento y cuáles son sus hechos principales?";
+      }
+
+      container.innerHTML = `
+        <div class="status-pill st-certain">
+          <span>✓ DOCUMENTO INDEXADO CON ÉXITO</span>
+          <span style="font-family: var(--mono); font-size: 11.5px;">${data.total_pages} págs • ${data.chunks_indexed} chunks</span>
+        </div>
+        <div class="answer-card" style="color: #cbd5e1; font-size: 13.5px;">
+          Se indexaron <strong>${data.chunks_indexed} fragmentos</strong> de <strong>${file.name}</strong> (${data.total_pages} páginas) en el espacio <code>${state.tenantId}</code>.<br/><br/>
+          Ya está listo para consultas con citas verificables. Escribe tu pregunta arriba y pulsa <strong>Consultar</strong>.
+        </div>
+      `;
+      await refreshHealth();
+    } catch (err) {
+      label.textContent = "Subir archivo PDF o TXT";
+      badge.textContent = "ERROR";
+      badge.style.color = "var(--rose)";
+      showToast("Error: " + err.message, true);
+      container.innerHTML = `
+        <div class="status-pill st-abstained">
+          <span>⚠ ERROR AL SUBIR O PROCESAR DOCUMENTO</span>
+        </div>
+        <div class="answer-card" style="border-color: rgba(244, 63, 94, 0.4); color: #fca5a5; font-size: 13.5px;">
+          <strong>Detalle del error:</strong> ${err.message}<br/><br/>
+          <em>Si el PDF es un escaneo de imágenes sin texto digital, activa el switch <strong>'Visión Tablas (Ruta D Flash)'</strong> a la izquierda para procesarlo con visión multimodal.</em>
+        </div>
+      `;
+    }
   }
 
   async function executeQuery() {

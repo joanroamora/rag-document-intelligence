@@ -1,6 +1,7 @@
 """Integration tests for the FastAPI REST service layer and multi-tenant HTTP guards."""
 
 import base64
+import io
 
 from fastapi.testclient import TestClient
 
@@ -184,4 +185,35 @@ def test_api_upload_binary_document_endpoint() -> None:
     )
     assert ask_res.status_code == 200
     assert "890,000 USD" in ask_res.json()["synthesized_answer"]
+
+
+def test_api_upload_multipart_document_endpoint() -> None:
+    """Verify POST /v1/documents/upload-file accepts multipart binary files and indexes chunks."""
+    client = TestClient(create_app())
+    headers = {"X-Tenant-Id": "tenant-multipart", "X-Project-Id": "proj-multipart"}
+
+    file_bytes = (
+        b"%PDF-1.7 Hecho Historico: Desaparicion ocurrida en el municipio de "
+        b"Cimitarra, Santander en 1987 contra 19 comerciantes."
+    )
+    files = {"file": ("informe_19_comerciantes.pdf", io.BytesIO(file_bytes), "application/pdf")}
+
+    res = client.post(
+        "/v1/documents/upload-file",
+        headers=headers,
+        files=files,
+    )
+    assert res.status_code == 201
+    data = res.json()
+    assert data["total_pages"] >= 1
+    assert data["chunks_indexed"] >= 1
+
+    ask_res = client.post(
+        "/v1/rag/ask",
+        headers=headers,
+        json={"question": "¿Dónde desaparecieron los 19 comerciantes?"},
+    )
+    assert ask_res.status_code == 200
+    assert "Cimitarra" in ask_res.json()["synthesized_answer"]
+
 

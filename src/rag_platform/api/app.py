@@ -7,7 +7,7 @@ import re
 import uuid
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile, status
 from fastapi.responses import HTMLResponse
 from pydantic import ValidationError
 from pypdf import PdfReader
@@ -136,7 +136,7 @@ def _extract_pages_from_bytes(
 ) -> list[RawPageInput]:
     """Extract RawPageInput items from uploaded PDF, TXT, RTF, or DOCX bytes."""
     if not raw_bytes:
-        raise ValueError("Uploaded file is empty")
+        raise ValueError("Uploaded file is empty (0 bytes).")
 
     block_kind = "table" if force_route_d else "paragraph"
     lower_name = filename.lower()
@@ -145,8 +145,10 @@ def _extract_pages_from_bytes(
         try:
             reader = PdfReader(io.BytesIO(raw_bytes))
             pages: list[RawPageInput] = []
+            total_chars = 0
             for idx, pdf_page in enumerate(reader.pages, start=1):
                 txt = (pdf_page.extract_text() or "").strip()
+                total_chars += len(txt)
                 pages.append(
                     RawPageInput(
                         page_number=idx,
@@ -156,14 +158,25 @@ def _extract_pages_from_bytes(
                     )
                 )
             if pages:
+                if total_chars == 0 and not force_route_d:
+                    raise ValueError(
+                        f"El PDF '{filename}' contiene {len(pages)} páginas pero no tiene texto "
+                        "digital seleccionable (parece un escaneo de imágenes sin OCR). "
+                        "Activa 'Visión Tablas (Ruta D Flash)' para procesarlo con visión."
+                    )
                 return pages
-        except Exception:
+        except Exception as exc:
+            if "no tiene texto digital" in str(exc):
+                raise
             pass
 
     decoded = raw_bytes.decode("utf-8", errors="ignore")
     cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", decoded).strip()
-    if not cleaned:
-        cleaned = "[ilegible]"
+    if not cleaned or len(cleaned) < 10:
+        raise ValueError(
+            f"No fue posible extraer texto legible del archivo '{filename}'. "
+            "Asegúrate de que no esté protegido por contraseña o vacío."
+        )
 
     chunks = [
         cleaned[i : i + 1800].strip()
@@ -288,6 +301,59 @@ def create_app(
                 job_id=job_id,
                 document_id=doc_id,
                 filename=payload.filename,
+                scope=scope,
+                bucket_name=bucket_name,
+                byte_stream=[raw_bytes],
+                pages=pages,
+            )
+        except (UnsupportedDocumentError, ValidationError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
+
+        return IngestDocumentResponse(
+            receipt=receipt,
+            total_pages=norm_doc.total_pages,
+            chunks_indexed=len(chunks),
+            chunk_ids=[c.chunk_id for c in chunks],
+        )
+
+    @application.post(
+        "/v1/documents/upload-file",
+        response_model=IngestDocumentResponse,
+        status_code=status.HTTP_201_CREATED,
+    )
+    async def upload_document_multipart(
+        tenant_headers: TenantHeadersDep,
+        file: UploadFile = File(...),
+        force_multimodal_route_d: bool = False,
+        case_id: str | None = None,
+    ) -> IngestDocumentResponse:
+        tenant_id, project_id = tenant_headers
+        raw_bytes = await file.read()
+        if not raw_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file is empty (0 bytes).",
+            )
+        try:
+            pages = _extract_pages_from_bytes(
+                filename=file.filename or "uploaded_document.pdf",
+                raw_bytes=raw_bytes,
+                force_route_d=force_multimodal_route_d,
+            )
+            doc_id = f"doc-{uuid.uuid4().hex[:8]}"
+            job_id = f"job-{uuid.uuid4().hex[:8]}"
+            scope = TenantScope(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                case_id=case_id,
+            )
+            receipt, norm_doc, chunks = active_orchestrator.ingest_document(
+                job_id=job_id,
+                document_id=doc_id,
+                filename=file.filename or "uploaded_document.pdf",
                 scope=scope,
                 bucket_name=bucket_name,
                 byte_stream=[raw_bytes],
