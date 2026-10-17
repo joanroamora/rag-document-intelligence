@@ -132,6 +132,21 @@ def test_api_ingest_ask_isolation_and_delete_lifecycle() -> None:
         == AnswerEpistemicStatus.GROUNDED_WITH_UNCERTAINTY
     )
 
+    # 5b. Ask in STANDARD_HYBRID mode with exhaustive=True
+    ask_exh = client.post(
+        "/v1/rag/ask",
+        headers=headers_a,
+        json={
+            "question": "condena al pago de 500,000 USD",
+            "mode": RetrievalMode.STANDARD_HYBRID,
+            "exhaustive": True,
+            "top_k": 5,
+        },
+    )
+    assert ask_exh.status_code == 200
+    assert ask_exh.json()["epistemic_status"] == AnswerEpistemicStatus.GROUNDED_CERTAIN
+    assert "500,000 USD" in ask_exh.json()["synthesized_answer"]
+
     # 6. Cross-tenant ask from tenant-bufete-b must abstain with zero data leakage
     ask_b = client.post(
         "/v1/rag/ask",

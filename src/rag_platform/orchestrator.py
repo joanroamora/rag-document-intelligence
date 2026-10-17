@@ -76,6 +76,7 @@ class RAGPlatformOrchestrator:
         mode: RetrievalMode = RetrievalMode.STANDARD_HYBRID,
         top_k: int = 5,
         budget: QueryBudget | None = None,
+        exhaustive: bool = False,
     ) -> GeneratedRAGResponse:
         """Execute Module 3 (Hybrid or Agentic Retrieval) and Module 4 (Grounded Generation)."""
         if mode == RetrievalMode.DEEP_AGENTIC:
@@ -91,6 +92,7 @@ class RAGPlatformOrchestrator:
                 query_text=question,
                 scope=scope,
                 top_k=top_k,
+                exhaustive=exhaustive,
             )
 
         return self.answer_generator.generate(retrieval_result)

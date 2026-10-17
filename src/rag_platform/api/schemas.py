@@ -51,6 +51,7 @@ class AskQuestionRequest(BaseModel):
     mode: RetrievalMode = Field(default=RetrievalMode.STANDARD_HYBRID)
     top_k: int = Field(default=5, ge=1, le=50)
     budget: QueryBudget | None = Field(default=None)
+    exhaustive: bool = Field(default=False)
 
 
 class DeleteDocumentResponse(BaseModel):

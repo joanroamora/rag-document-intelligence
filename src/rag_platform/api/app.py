@@ -391,6 +391,7 @@ def create_app(
             mode=payload.mode,
             top_k=payload.top_k,
             budget=payload.budget,
+            exhaustive=payload.exhaustive,
         )
 
     @application.delete(

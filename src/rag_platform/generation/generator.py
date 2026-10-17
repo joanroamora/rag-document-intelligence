@@ -1,5 +1,6 @@
 """Module 4: Grounded Answer Generation, Citation Guard, and Epistemic Safety Validator."""
 
+import re
 from collections.abc import Sequence
 from typing import Protocol
 
@@ -53,7 +54,7 @@ class AnswerSynthesisBackend(Protocol):
 
 
 class ExtractiveGroundedSynthesizer:
-    """Deterministic extractive synthesizer that builds cited claims from observed evidence."""
+    """Deterministic extractive synthesizer that builds focused cited claims from evidence."""
 
     def synthesize(
         self,
@@ -62,10 +63,19 @@ class ExtractiveGroundedSynthesizer:
         config: GeneratorConfig,
     ) -> tuple[str, list[GroundedClaim], bool]:
         """Construct grounded claims directly from retrieved evidence and detect conflicts."""
-        _ = (question, config)
+        _ = config
         claims: list[GroundedClaim] = []
         summary_lines: list[str] = []
         has_conflict = False
+
+        raw_terms = re.findall(r"\w+", question.lower())
+        stopwords = {
+            "el", "la", "los", "las", "un", "una", "de", "del", "al", "en",
+            "y", "o", "por", "para", "con", "sin", "sobre", "que", "se", "su",
+            "sus", "es", "son", "como", "estos", "estas", "este", "esta",
+            "cual", "cuales", "donde", "cuando", "quien", "quienes",
+        }
+        q_terms = {t for t in raw_terms if len(t) > 2 and t not in stopwords}
 
         for item in evidence_items:
             cid = item.citation.chunk_id
@@ -75,17 +85,31 @@ class ExtractiveGroundedSynthesizer:
             if "[contradicción]" in excerpt.lower() or "contradictorio" in excerpt.lower():
                 has_conflict = True
 
+            sentences = [
+                s.strip()
+                for s in re.split(r"(?<=[.!?])\s+", excerpt)
+                if len(s.strip()) > 10
+            ]
+            matched = [s for s in sentences if any(t in s.lower() for t in q_terms)]
+            if matched:
+                focused_text = " ".join(matched[:2])
+            else:
+                focused_text = sentences[0] if sentences else excerpt[:250]
+
+            statement = f"{focused_text} [{cid}]"
             claims.append(
                 GroundedClaim(
-                    statement=f"{excerpt} [{cid}]",
+                    statement=statement,
                     cited_chunk_ids=[cid],
                     contains_uncertainty=uncertain,
                 )
             )
-            page_range = f"p.{item.citation.page_start}-{item.citation.page_end}"
-            summary_lines.append(f"- {excerpt} (Fuente: {cid}, {page_range})")
+            ref_info = f"(Fuente: {cid}, {page_info})"
+            summary_lines.append(
+                f"- **Pág. {item.citation.page_start}**: {focused_text} {ref_info}"
+            )
 
-        synthesized = "\n".join(summary_lines)
+        synthesized = "\n\n".join(summary_lines)
         return synthesized, claims, has_conflict
 
 

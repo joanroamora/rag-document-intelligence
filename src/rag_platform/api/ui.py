@@ -826,13 +826,22 @@ ENTERPRISE_UI_HTML = r"""<!DOCTYPE html>
     let question = document.getElementById("query-input").value.trim();
     if (!question) return;
 
-    if (document.getElementById("toggle-exhaustive").checked && !question.toLowerCase().includes("todos")) {
+    const isExhaustive = document.getElementById("toggle-exhaustive").checked;
+    if (isExhaustive && !question.toLowerCase().includes("todos")) {
       question = "Listar todos: " + question;
     }
 
     btn.disabled = true;
     btn.textContent = "Buscando...";
     const t0 = performance.now();
+
+    container.innerHTML = `
+      <div style="text-align: center; padding: 45px 20px; color: var(--muted);">
+        <div style="font-size: 26px; margin-bottom: 8px;">🔍</div>
+        <div style="font-size: 13.5px; font-weight: 600; color: #f8fafc;">Buscando evidencias para: "${question}"</div>
+        <div style="font-size: 12px; color: var(--subtle); margin-top: 4px;">Recuperando y analizando fragmentos documentales...</div>
+      </div>
+    `;
 
     try {
       const res = await fetch("/v1/rag/ask", {
@@ -846,6 +855,7 @@ ENTERPRISE_UI_HTML = r"""<!DOCTYPE html>
           question: question,
           mode: state.mode,
           top_k: state.topK,
+          exhaustive: isExhaustive,
           budget: {
             max_iterations: 3,
             max_subqueries: state.maxSubqueries,
@@ -909,6 +919,10 @@ ENTERPRISE_UI_HTML = r"""<!DOCTYPE html>
       <div class="status-pill ${stClass}">
         <span>${stText}</span>
         <span style="font-family: var(--mono); font-size: 11.5px;">${ms} ms • Top-${state.topK}</span>
+      </div>
+      <div style="font-size: 13px; font-weight: 600; color: #93c5fd; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <span style="color: var(--muted); font-size: 11.5px; text-transform: uppercase;">Consulta:</span>
+        <span>"${data.question}"</span>
       </div>
       <div class="answer-card">${data.synthesized_answer}</div>
       ${warnings}
