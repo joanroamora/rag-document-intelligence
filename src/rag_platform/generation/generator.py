@@ -104,6 +104,7 @@ class ExtractiveGroundedSynthesizer:
                     contains_uncertainty=uncertain,
                 )
             )
+            page_info = f"p.{item.citation.page_start}-{item.citation.page_end}"
             ref_info = f"(Fuente: {cid}, {page_info})"
             summary_lines.append(
                 f"- **Pág. {item.citation.page_start}**: {focused_text} {ref_info}"
