@@ -1,5 +1,7 @@
 """Integration tests for the FastAPI REST service layer and multi-tenant HTTP guards."""
 
+import base64
+
 from fastapi.testclient import TestClient
 
 from rag_platform.api import create_app
@@ -148,3 +150,38 @@ def test_api_ingest_ask_isolation_and_delete_lifecycle() -> None:
     assert del_res.json()["deleted_vector_chunks"] == 2
     assert del_res.json()["deleted_lexical_chunks"] == 2
     assert client.get("/health").json()["indexed_chunks"] == 0
+
+
+def test_api_upload_binary_document_endpoint() -> None:
+    """Verify POST /v1/documents/upload extracts pages from Base64 files and indexes chunks."""
+    client = TestClient(create_app())
+    headers = {"X-Tenant-Id": "tenant-upload", "X-Project-Id": "proj-upload"}
+
+    raw_bytes = (
+        b"%PDF-1.7 Cl\xc3\xa1usula Especial: Indemnizaci\xc3\xb3n acordada por "
+        b"890,000 USD en caso de incumplimiento contractual."
+    )
+    b64_payload = "data:application/pdf;base64," + base64.b64encode(raw_bytes).decode("ascii")
+
+    res = client.post(
+        "/v1/documents/upload",
+        headers=headers,
+        json={
+            "filename": "contrato_subido.pdf",
+            "content_base64": b64_payload,
+            "force_multimodal_route_d": True,
+        },
+    )
+    assert res.status_code == 201
+    data = res.json()
+    assert data["total_pages"] >= 1
+    assert data["chunks_indexed"] >= 1
+
+    ask_res = client.post(
+        "/v1/rag/ask",
+        headers=headers,
+        json={"question": "¿Cuál es la indemnización acordada de 890,000 USD?"},
+    )
+    assert ask_res.status_code == 200
+    assert "890,000 USD" in ask_res.json()["synthesized_answer"]
+

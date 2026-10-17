@@ -1,8 +1,8 @@
-"""Enterprise Apple/Fluent-inspired Glassmorphic Web UI for the RAG Platform."""
+"""Minimalist Apple Control Center / Fluent Glassmorphic Web UI with PDF Upload and Knobs."""
 
 # ruff: noqa: E501
 
-ENTERPRISE_UI_HTML = """<!DOCTYPE html>
+ENTERPRISE_UI_HTML = r"""<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -10,767 +10,879 @@ ENTERPRISE_UI_HTML = """<!DOCTYPE html>
 <title>AETHER RAG — Enterprise Document Intelligence</title>
 <style>
   :root {
-    --bg-base: #07090e;
-    --bg-surface: rgba(18, 22, 32, 0.72);
-    --bg-elevated: rgba(28, 34, 48, 0.65);
-    --bg-glass-hover: rgba(42, 50, 70, 0.55);
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-highlight: rgba(255, 255, 255, 0.16);
-    --text-primary: #f5f7fa;
-    --text-secondary: #9ba3b5;
-    --text-muted: #636b7e;
-    --accent-primary: #3b82f6;
-    --accent-glow: rgba(59, 130, 246, 0.32);
+    --bg: #06080d;
+    --panel: rgba(18, 23, 34, 0.74);
+    --panel-elevated: rgba(28, 35, 52, 0.68);
+    --border: rgba(255, 255, 255, 0.09);
+    --border-active: rgba(59, 130, 246, 0.55);
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --subtle: #64748b;
+    --accent: #3b82f6;
     --emerald: #10b981;
-    --emerald-bg: rgba(16, 185, 129, 0.12);
     --amber: #f59e0b;
-    --amber-bg: rgba(245, 158, 11, 0.12);
-    --indigo: #818cf8;
-    --indigo-bg: rgba(129, 140, 248, 0.12);
     --rose: #f43f5e;
-    --rose-bg: rgba(244, 63, 94, 0.12);
-    --radius-lg: 18px;
-    --radius-md: 12px;
-    --radius-sm: 8px;
-    --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable",
-                 "Inter", system-ui, sans-serif;
-    --font-mono: "SF Mono", "Cascadia Code", "JetBrains Mono", monospace;
+    --indigo: #818cf8;
+    --spring: cubic-bezier(0.16, 1, 0.3, 1);
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable", system-ui, sans-serif;
+    --mono: "SF Mono", "Cascadia Code", monospace;
   }
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    background-color: var(--bg-base);
+    background: var(--bg);
     background-image:
-      radial-gradient(circle at 15% 10%, rgba(59, 130, 246, 0.11), transparent 40%),
-      radial-gradient(circle at 85% 15%, rgba(129, 140, 248, 0.08), transparent 35%),
-      radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.06), transparent 45%);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
+      radial-gradient(circle at 12% 8%, rgba(59, 130, 246, 0.14), transparent 38%),
+      radial-gradient(circle at 88% 12%, rgba(16, 185, 129, 0.08), transparent 36%);
+    color: var(--text);
+    font-family: var(--font);
     min-height: 100vh;
-    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
   }
 
-  /* Top Acrylic Navigation Bar */
+  /* Toast Notification */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 999;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-active);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    transform: translateY(120%);
+    opacity: 0;
+    transition: all 0.35s var(--spring);
+    pointer-events: none;
+  }
+  #toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Top Bar */
   .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 50;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 32px;
-    background: rgba(10, 13, 20, 0.78);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border-bottom: 1px solid var(--border-subtle);
+    padding: 14px 28px;
+    background: rgba(8, 11, 18, 0.8);
+    backdrop-filter: blur(24px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
   }
 
-  .brand-orb {
-    width: 34px;
-    height: 34px;
+  .orb {
+    width: 32px;
+    height: 32px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 55%, #10b981 100%);
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #10b981);
+    display: grid;
+    place-items: center;
     font-weight: 700;
     font-size: 15px;
-    letter-spacing: -0.5px;
+    box-shadow: 0 0 18px rgba(59, 130, 246, 0.45);
   }
 
-  .brand-title {
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-
-  .brand-subtitle {
-    font-size: 11px;
-    color: var(--text-secondary);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .telemetry-bar {
+  .top-stats {
     display: flex;
     align-items: center;
     gap: 12px;
   }
 
-  .pill {
-    display: inline-flex;
+  .stat-pill {
+    display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 13px;
+    padding: 6px 14px;
     border-radius: 999px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-subtle);
-    font-size: 12px;
-    color: var(--text-secondary);
-    transition: all 0.3s var(--ease-spring);
+    background: var(--panel-elevated);
+    border: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--muted);
   }
 
-  .status-dot {
-    width: 7px;
-    height: 7px;
+  .dot {
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--emerald);
     box-shadow: 0 0 8px var(--emerald);
   }
 
-  /* Main Layout Grid */
-  .workspace {
-    max-width: 1480px;
-    margin: 28px auto;
-    padding: 0 28px 48px;
+  /* Main Layout */
+  .layout {
+    max-width: 1360px;
+    margin: 24px auto;
+    padding: 0 24px 40px;
     display: grid;
-    grid-template-columns: 430px 1fr;
-    gap: 24px;
+    grid-template-columns: 360px 1fr;
+    gap: 22px;
   }
 
-  @media (max-width: 1100px) {
-    .workspace {
-      grid-template-columns: 1fr;
-    }
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; }
   }
 
-  /* Glass Panels */
-  .glass-card {
-    background: var(--bg-surface);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    padding: 22px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-    transition: border-color 0.35s var(--ease-spring), transform 0.35s var(--ease-spring);
+  .card {
+    background: var(--panel);
+    backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
   }
 
-  .glass-card:hover {
-    border-color: var(--border-highlight);
-  }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-
-  .section-title {
-    font-size: 13px;
+  .card-title {
+    font-size: 11.5px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-secondary);
-  }
-
-  .badge-tag {
-    font-size: 11px;
-    font-family: var(--font-mono);
-    padding: 3px 9px;
-    border-radius: 6px;
-    background: rgba(59, 130, 246, 0.14);
-    color: #93c5fd;
-    border: 1px solid rgba(59, 130, 246, 0.25);
-  }
-
-  /* Form Controls */
-  .field-group {
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 14px;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 13px;
+    justify-content: space-between;
+    align-items: center;
   }
 
-  .field-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+  /* Dropzone */
+  .dropzone {
+    border: 1.5px dashed rgba(59, 130, 246, 0.45);
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 16px;
+    padding: 22px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s var(--spring);
+    margin-bottom: 12px;
   }
-
-  label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
+  .dropzone:hover, .dropzone.dragover {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: var(--accent);
+    transform: scale(1.01);
   }
-
-  input, select, textarea {
-    width: 100%;
-    padding: 10px 13px;
-    border-radius: var(--radius-sm);
-    background: rgba(9, 12, 18, 0.72);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
-    font-size: 13px;
-    outline: none;
-    transition: all 0.25s var(--ease-spring);
+  .dropzone-icon {
+    font-size: 26px;
+    margin-bottom: 6px;
   }
-
-  input:focus, select:focus, textarea:focus {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+  .dropzone-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
   }
-
-  textarea {
-    resize: vertical;
-    min-height: 76px;
-    line-height: 1.45;
+  .dropzone-sub {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 3px;
   }
 
   /* Buttons */
   .btn {
+    width: 100%;
+    padding: 11px 16px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 10px 16px;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.25s var(--ease-spring);
+    transition: all 0.22s var(--spring);
   }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.55; cursor: wait; }
 
   .btn-primary {
-    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-    color: #ffffff;
-    box-shadow: 0 4px 18px rgba(37, 99, 235, 0.38);
+    background: linear-gradient(180deg, #3b82f6, #2563eb);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
   }
-
-  .btn-primary:hover {
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.55);
     transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.52);
   }
 
-  .btn-secondary {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-    border-color: var(--border-subtle);
+  .btn-ghost {
+    background: var(--panel-elevated);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: var(--border-active);
+    background: rgba(59, 130, 246, 0.14);
   }
 
-  .btn-secondary:hover {
-    background: var(--bg-glass-hover);
-    border-color: var(--border-highlight);
-  }
-
-  /* Segmented Control (Apple Style) */
-  .segmented-control {
+  /* Segmented Pills */
+  .segmented {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    background: rgba(8, 10, 16, 0.85);
+    background: rgba(8, 11, 18, 0.85);
     padding: 4px;
-    border-radius: 11px;
-    border: 1px solid var(--border-subtle);
-    margin-bottom: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
   }
-
-  .segment-btn {
-    padding: 9px 12px;
-    border-radius: 8px;
+  .seg-btn {
+    padding: 8px 10px;
+    border-radius: 9px;
     border: none;
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s var(--spring);
+  }
+  .seg-btn.active {
+    background: rgba(59, 130, 246, 0.24);
+    color: #fff;
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.2);
+  }
+
+  /* Knobs / Sliders */
+  .knob-row {
+    margin-bottom: 14px;
+    background: rgba(10, 14, 22, 0.55);
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .knob-header {
+    display: flex;
+    justify-content: space-between;
     font-size: 12.5px;
     font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .knob-val {
+    font-family: var(--mono);
+    color: #93c5fd;
+    font-weight: 700;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--accent);
     cursor: pointer;
-    transition: all 0.3s var(--ease-spring);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    transition: transform 0.15s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
   }
 
-  .segment-btn.active {
-    background: rgba(59, 130, 246, 0.22);
-    color: #ffffff;
-    border: 1px solid rgba(59, 130, 246, 0.45);
-    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.22);
+  /* iOS Toggle Switches */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(10, 14, 22, 0.55);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+  .switch {
+    position: relative;
+    width: 42px;
+    height: 24px;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.25s var(--spring);
+  }
+  .slider:before {
+    content: "";
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.25s var(--spring);
+  }
+  .switch input:checked + .slider {
+    background: var(--accent);
+  }
+  .switch input:checked + .slider:before {
+    transform: translateX(18px);
   }
 
-  /* Quick Prompt Chips */
-  .chip-row {
+  /* Search & Chips */
+  .search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .search-input {
+    flex: 1;
+    padding: 13px 16px;
+    border-radius: 14px;
+    background: rgba(8, 11, 18, 0.85);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.25s var(--spring);
+  }
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  }
+
+  .chips {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
   }
-
   .chip {
-    padding: 6px 12px;
+    padding: 7px 13px;
     border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--muted);
     font-size: 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.22s var(--ease-spring);
+    transition: all 0.2s var(--spring);
   }
-
   .chip:hover {
-    background: rgba(59, 130, 246, 0.14);
-    color: var(--text-primary);
-    border-color: rgba(59, 130, 246, 0.4);
+    background: rgba(59, 130, 246, 0.16);
+    color: #fff;
+    border-color: var(--border-active);
     transform: translateY(-1px);
   }
 
-  /* Epistemic Status Banner */
-  .status-banner {
+  /* Results */
+  .status-pill {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 13px 16px;
-    border-radius: var(--radius-md);
-    margin-bottom: 18px;
+    padding: 12px 16px;
+    border-radius: 14px;
     font-size: 13px;
     font-weight: 600;
-    animation: fadeSlideIn 0.4s var(--ease-spring);
+    margin-bottom: 14px;
   }
+  .st-certain { background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
+  .st-uncertain { background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; }
+  .st-abstained { background: rgba(244, 63, 94, 0.14); border: 1px solid rgba(244, 63, 94, 0.4); color: #fb7185; }
 
-  .status-certain {
-    background: var(--emerald-bg);
-    border: 1px solid rgba(16, 185, 129, 0.35);
-    color: #34d399;
-  }
-
-  .status-uncertain {
-    background: var(--amber-bg);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #fbbf24;
-  }
-
-  .status-abstained {
-    background: var(--rose-bg);
-    border: 1px solid rgba(244, 63, 94, 0.35);
-    color: #fb7185;
-  }
-
-  .answer-box {
-    background: rgba(10, 14, 22, 0.76);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 18px;
+  .answer-card {
+    background: rgba(9, 13, 22, 0.8);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
     font-size: 14px;
-    line-height: 1.65;
+    line-height: 1.6;
     white-space: pre-wrap;
-    margin-bottom: 20px;
-    animation: fadeSlideIn 0.45s var(--ease-spring);
+    margin-bottom: 16px;
   }
 
-  .evidence-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
+  .cite-card {
+    background: rgba(15, 20, 32, 0.75);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
   }
-
-  .citation-card {
-    background: rgba(16, 20, 30, 0.8);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
-    transition: all 0.25s var(--ease-spring);
-    animation: fadeSlideIn 0.5s var(--ease-spring);
-  }
-
-  .citation-card:hover {
-    border-color: rgba(59, 130, 246, 0.4);
-    transform: translateX(2px);
-  }
-
-  .citation-meta {
+  .cite-top {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 8px;
-    font-family: var(--font-mono);
+    font-family: var(--mono);
     font-size: 11.5px;
-    color: var(--text-secondary);
+    color: #93c5fd;
+    margin-bottom: 6px;
   }
-
-  .epistemic-box {
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
-    margin-top: 14px;
-    font-size: 12.5px;
-    animation: fadeSlideIn 0.5s var(--ease-spring);
+  .score-bar-bg {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 8px;
   }
-
-  .epistemic-hypothesis {
-    background: var(--indigo-bg);
-    border: 1px solid rgba(129, 140, 248, 0.32);
-    color: #c7d2fe;
-  }
-
-  .epistemic-warning {
-    background: var(--amber-bg);
-    border: 1px solid rgba(245, 158, 11, 0.32);
-    color: #fde68a;
-  }
-
-  .left-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  @keyframes fadeSlideIn {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .score-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #10b981);
+    border-radius: 999px;
   }
 </style>
 </head>
 <body>
 
+<div id="toast">Listo</div>
+
 <header class="topbar">
   <div class="brand">
-    <div class="brand-orb">Æ</div>
+    <div class="orb">Æ</div>
     <div>
-      <div class="brand-title">AETHER RAG • Document Intelligence</div>
-      <div class="brand-subtitle">Multi-Tenant Epistemic Verification Engine</div>
+      <div style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em;">AETHER RAG</div>
+      <div style="font-size: 11px; color: var(--muted);">Document Intelligence Studio</div>
     </div>
   </div>
-  <div class="telemetry-bar">
-    <div class="pill">
-      <span class="status-dot"></span>
-      <span id="health-status">Cloud Engine Online</span>
+  <div class="top-stats">
+    <div class="stat-pill">
+      <span class="dot"></span>
+      <span>Cloud Run</span>
     </div>
-    <div class="pill">
-      <span>Chunks Indexados:</span>
-      <strong id="stat-chunks" style="color: var(--text-primary);">0</strong>
+    <div class="stat-pill">
+      <span>Chunks:</span>
+      <strong id="stat-chunks" style="color: #fff;">0</strong>
     </div>
-    <button class="btn btn-primary" onclick="loadEnterpriseDemoDossier()">
-      ✦ Cargar Expediente Corporativo Demo
-    </button>
   </div>
 </header>
 
-<main class="workspace">
-  <!-- Left Column: Multi-Tenant Context & Ingestion -->
-  <div class="left-stack">
-    <section class="glass-card">
-      <div class="section-header">
-        <span class="section-title">1. Bóveda de Aislamiento Multi-Tenant</span>
-        <span class="badge-tag">INVARIANT #3</span>
+<main class="layout">
+  <!-- Left Column: Upload & Tactile Controls -->
+  <div style="display: flex; flex-direction: column; gap: 18px;">
+    <section class="card">
+      <div class="card-title">
+        <span>1. Documento (PDF / TXT / DOCX)</span>
+        <span id="file-badge" style="color: #93c5fd; font-family: var(--mono);">LISTO</span>
       </div>
-      <div class="field-row">
-        <div class="field-group">
-          <label for="tenant-id">Tenant ID (X-Tenant-Id)</label>
-          <input id="tenant-id" value="bufete-lex-corp" />
-        </div>
-        <div class="field-group">
-          <label for="project-id">Project ID (X-Project-Id)</label>
-          <input id="project-id" value="litigios-2026" />
-        </div>
+
+      <input
+        type="file"
+        id="file-input"
+        accept=".pdf,.txt,.rtf,.docx"
+        style="display: none;"
+      />
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">📄</div>
+        <div class="dropzone-title" id="dropzone-label">Subir archivo PDF o TXT</div>
+        <div class="dropzone-sub">Arrastra aquí o haz clic para explorar</div>
       </div>
-      <div class="field-group" style="margin-bottom: 8px;">
-        <label for="case-id">Expediente / Dossier (case_id)</label>
-        <input id="case-id" value="EXP-ARB-904" />
-      </div>
-      <div class="chip-row" style="margin-top: 10px; margin-bottom: 0;">
-        <span class="chip" onclick="switchTenant('bufete-lex-corp', 'litigios-2026')">
-          Cliente A: bufete-lex-corp
-        </span>
-        <span class="chip" onclick="switchTenant('auditoria-externa-z', 'litigios-2026')">
-          Cliente B: auditoria-externa-z (Aislado)
-        </span>
-      </div>
+
+      <button class="btn btn-ghost" id="btn-demo">
+        ✦ Cargar Expediente Demo (1-Clic)
+      </button>
     </section>
 
-    <section class="glass-card">
-      <div class="section-header">
-        <span class="section-title">2. Ingesta Documental & Router M1</span>
-        <span class="badge-tag">RUTAS A–E</span>
+    <section class="card">
+      <div class="card-title">
+        <span>2. Controles & Perillas</span>
+        <span style="font-family: var(--mono); color: var(--emerald);">MULTI-TENANT</span>
       </div>
-      <div class="field-row">
-        <div class="field-group">
-          <label for="doc-id">Document ID</label>
-          <input id="doc-id" value="doc-laudo-904" />
+
+      <div style="font-size: 12px; color: var(--muted); margin-bottom: 6px;">Espacio de Cliente (Tenant)</div>
+      <div class="segmented">
+        <button class="seg-btn active" id="btn-tenant-a" type="button">🏢 LexCorp</button>
+        <button class="seg-btn" id="btn-tenant-b" type="button">🔒 Auditoría</button>
+      </div>
+
+      <div style="font-size: 12px; color: var(--muted); margin-bottom: 6px;">Modo de Recuperación</div>
+      <div class="segmented">
+        <button class="seg-btn active" id="btn-mode-hybrid" type="button">⚡ Hybrid</button>
+        <button class="seg-btn" id="btn-mode-agentic" type="button">🧠 Agentic</button>
+      </div>
+
+      <div class="knob-row">
+        <div class="knob-header">
+          <span>Precisión Top-K Evidencias</span>
+          <span class="knob-val" id="val-topk">4</span>
         </div>
-        <div class="field-group">
-          <label for="doc-filename">Archivo Original</label>
-          <input id="doc-filename" value="laudo_arbitral_infraestructura.pdf" />
+        <input type="range" id="knob-topk" min="1" max="10" value="4" />
+      </div>
+
+      <div class="knob-row">
+        <div class="knob-header">
+          <span>Presupuesto Subconsultas</span>
+          <span class="knob-val" id="val-subq">3</span>
         </div>
+        <input type="range" id="knob-subq" min="1" max="8" value="3" />
       </div>
-      <div class="field-group">
-        <label for="page1-text">Página 1 (Ruta A — Capa Digital)</label>
-        <textarea id="page1-text">Sección 1 (Objeto y Penalidades): El consorcio constructor pagará una cláusula penal por mora de 420,000 USD si supera los 180 días de ejecución.</textarea>
+
+      <div class="toggle-row">
+        <span>Visión Tablas (Ruta D Flash)</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-routed" checked />
+          <span class="slider"></span>
+        </label>
       </div>
-      <div class="field-group">
-        <label for="page2-text">Página 2 (Ruta D — Tabla / Sello con Incertidumbre)</label>
-        <textarea id="page2-text">Sección 2 (Liquidación de Pagos): Pago número uno por 150,000 USD ejecutado en enero. Pago número dos por 270,000 USD con sello notarial parcialmente [ilegible] en marzo.</textarea>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-        <span id="ingest-feedback" style="font-size: 12px; color: var(--text-secondary);">
-          Listo para indexar en VectorStore + BM25
-        </span>
-        <button class="btn btn-secondary" onclick="ingestCustomDocument()">
-          Indexar Documento
-        </button>
+
+      <div class="toggle-row" style="margin-bottom: 0;">
+        <span>Barrido Exhaustivo ("Todos")</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-exhaustive" />
+          <span class="slider"></span>
+        </label>
       </div>
     </section>
   </div>
 
-  <!-- Right Column: Intelligence & Epistemic Verification Console -->
-  <section class="glass-card" style="display: flex; flex-direction: column;">
-    <div class="section-header">
-      <span class="section-title">3. Consola de Recuperación Híbrida / Agéntica & Generación Citada</span>
-      <span class="badge-tag">MÓDULOS 3 & 4</span>
-    </div>
-
-    <div class="segmented-control">
-      <button id="mode-hybrid" class="segment-btn active" onclick="setMode('standard_hybrid')">
-        Standard Hybrid (Vector + BM25 + RRF)
-      </button>
-      <button id="mode-agentic" class="segment-btn" onclick="setMode('deep_agentic')">
-        Deep Agentic (Query Planner + Exhaustive Scan)
-      </button>
-    </div>
-
-    <div class="chip-row">
-      <span class="chip" onclick="runPresetQuery('¿Cuál es la cláusula penal por mora y el plazo de 180 días?', 'standard_hybrid')">
-        ✦ Consulta Cierta (Página 1)
-      </span>
-      <span class="chip" onclick="runPresetQuery('¿Cuál es el pago número dos de 270,000 USD con sello en marzo?', 'standard_hybrid')">
-        ⚠ Consulta con Incertidumbre [ilegible] (Página 2)
-      </span>
-      <span class="chip" onclick="runPresetQuery('¿Cuál es la cláusula penal por mora y además listar cada pago del expediente?', 'deep_agentic')">
-        ⚡ Barrido Exhaustivo Agéntico ("cada pago")
-      </span>
-      <span class="chip" onclick="runPresetQuery('¿Existe algún dictamen ambiental o peritaje geológico?', 'standard_hybrid')">
-        🛡 Prueba de Abstención Epistemológica
+  <!-- Right Column: Search & Visual Evidence -->
+  <section class="card" style="display: flex; flex-direction: column;">
+    <div class="card-title">
+      <span>3. Consulta Verificable</span>
+      <span id="active-scope-label" style="font-family: var(--mono); color: #93c5fd;">
+        tenant: bufete-lex-corp
       </span>
     </div>
 
-    <div style="display: flex; gap: 10px; margin-bottom: 22px;">
+    <div class="search-bar">
       <input
+        class="search-input"
         id="query-input"
-        placeholder="Escribe una consulta jurídica o técnica verificable..."
+        placeholder="Pregunta sobre tus documentos indexados..."
         value="¿Cuál es la cláusula penal por mora y el plazo de 180 días?"
-        onkeydown="if(event.key==='Enter') executeQuery()"
       />
-      <button class="btn btn-primary" style="min-width: 155px;" onclick="executeQuery()">
-        Consultar Evidencia
+      <button class="btn btn-primary" id="btn-ask" style="width: 150px;">
+        Consultar
       </button>
     </div>
 
-    <div id="results-container" style="flex: 1;">
-      <div style="text-align: center; padding: 64px 24px; color: var(--text-muted);">
-        Haz clic en <strong>"✦ Cargar Expediente Corporativo Demo"</strong> en la barra superior
-        para inicializar el índice y verificar el motor de extremo a extremo.
+    <div class="chips">
+      <button class="chip" type="button" data-q="¿Cuál es la cláusula penal por mora y el plazo de 180 días?" data-m="standard_hybrid">
+        ✦ Cláusula Penal
+      </button>
+      <button class="chip" type="button" data-q="¿Cuál es el pago número dos de 270,000 USD con sello en marzo?" data-m="standard_hybrid">
+        ⚠ Pago [Ilegible]
+      </button>
+      <button class="chip" type="button" data-q="¿Cuál es la cláusula penal por mora y además listar cada pago del expediente?" data-m="deep_agentic">
+        ⚡ Todos los Pagos
+      </button>
+      <button class="chip" type="button" data-q="¿Existe algún dictamen ambiental o geológico?" data-m="standard_hybrid">
+        🛡 Abstención
+      </button>
+    </div>
+
+    <div id="results-area" style="flex: 1;">
+      <div style="text-align: center; padding: 70px 20px; color: var(--subtle); font-size: 13.5px;">
+        Sube un archivo <strong>PDF / TXT</strong> a la izquierda o pulsa
+        <strong>"✦ Cargar Expediente Demo (1-Clic)"</strong> para comenzar.
       </div>
     </div>
   </section>
 </main>
 
 <script>
-  let activeMode = "standard_hybrid";
+  const state = {
+    tenantId: "bufete-lex-corp",
+    projectId: "litigios-2026",
+    mode: "standard_hybrid",
+    topK: 4,
+    maxSubqueries: 3
+  };
 
-  function setMode(mode) {
-    activeMode = mode;
-    document.getElementById("mode-hybrid").classList.toggle("active", mode === "standard_hybrid");
-    document.getElementById("mode-agentic").classList.toggle("active", mode === "deep_agentic");
-  }
-
-  function switchTenant(tenantId, projectId) {
-    document.getElementById("tenant-id").value = tenantId;
-    document.getElementById("project-id").value = projectId;
-    executeQuery();
+  function showToast(msg, isError = false) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.borderColor = isError ? "var(--rose)" : "var(--emerald)";
+    t.classList.add("show");
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
   }
 
   async function refreshHealth() {
     try {
       const res = await fetch("/health");
-      const data = await res.json();
-      document.getElementById("stat-chunks").textContent = data.indexed_chunks;
-    } catch (err) {
-      console.error(err);
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById("stat-chunks").textContent = data.indexed_chunks;
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
 
-  async function ingestCustomDocument() {
-    const tenantId = document.getElementById("tenant-id").value.trim();
-    const projectId = document.getElementById("project-id").value.trim();
-    const caseId = document.getElementById("case-id").value.trim();
-    const docId = document.getElementById("doc-id").value.trim();
-    const filename = document.getElementById("doc-filename").value.trim();
-    const p1 = document.getElementById("page1-text").value.trim();
-    const p2 = document.getElementById("page2-text").value.trim();
-    const fb = document.getElementById("ingest-feedback");
-
-    fb.textContent = "Procesando e indexando...";
-    const res = await fetch("/v1/documents/ingest", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Tenant-Id": tenantId,
-        "X-Project-Id": projectId
-      },
-      body: JSON.stringify({
-        job_id: "job-" + Date.now(),
-        document_id: docId,
-        filename: filename,
-        case_id: caseId || null,
-        raw_content_text: "%PDF-1.7 " + p1 + "\n" + p2,
-        pages: [
-          { page_number: 1, digital_text: p1, block_type: "header" },
-          {
-            page_number: 2,
-            digital_text: p2,
-            has_complex_tables_or_diagrams: true,
-            block_type: "table"
-          }
-        ]
-      })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      fb.style.color = "var(--rose)";
-      fb.textContent = "Error: " + (err.detail || res.statusText);
-      return false;
-    }
-
-    const data = await res.json();
-    fb.style.color = "var(--emerald)";
-    fb.textContent = "✓ Indexados " + data.chunks_indexed + " chunks en " + data.receipt.gcs_uri;
-    await refreshHealth();
-    return true;
-  }
-
-  async function loadEnterpriseDemoDossier() {
-    document.getElementById("tenant-id").value = "bufete-lex-corp";
-    document.getElementById("project-id").value = "litigios-2026";
-    const ok = await ingestCustomDocument();
-    if (ok) {
-      await executeQuery();
-    }
-  }
-
-  function runPresetQuery(questionText, mode) {
-    document.getElementById("query-input").value = questionText;
-    setMode(mode);
+  function setTenant(tenantId, isA) {
+    state.tenantId = tenantId;
+    document.getElementById("btn-tenant-a").classList.toggle("active", isA);
+    document.getElementById("btn-tenant-b").classList.toggle("active", !isA);
+    document.getElementById("active-scope-label").textContent = "tenant: " + tenantId;
+    showToast("Cambiado a " + tenantId);
     executeQuery();
   }
 
-  async function executeQuery() {
-    const tenantId = document.getElementById("tenant-id").value.trim();
-    const projectId = document.getElementById("project-id").value.trim();
-    const caseId = document.getElementById("case-id").value.trim();
-    const question = document.getElementById("query-input").value.trim();
-    const container = document.getElementById("results-container");
-
-    const t0 = performance.now();
-    const res = await fetch("/v1/rag/ask", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Tenant-Id": tenantId,
-        "X-Project-Id": projectId
-      },
-      body: JSON.stringify({
-        question: question,
-        case_id: caseId || null,
-        mode: activeMode,
-        top_k: 4
-      })
-    });
-    const elapsedMs = Math.round(performance.now() - t0);
-
-    if (!res.ok) {
-      const err = await res.json();
-      container.innerHTML = `<div class="status-banner status-abstained">
-        <span>Error de Autorización (${res.status})</span>
-        <span>${err.detail || "Acceso denegado"}</span>
-      </div>`;
-      return;
-    }
-
-    const data = await res.json();
-    renderRAGResponse(data, elapsedMs);
+  function setMode(mode) {
+    state.mode = mode;
+    document.getElementById("btn-mode-hybrid").classList.toggle("active", mode === "standard_hybrid");
+    document.getElementById("btn-mode-agentic").classList.toggle("active", mode === "deep_agentic");
   }
 
-  function renderRAGResponse(data, elapsedMs) {
-    const container = document.getElementById("results-container");
-    let statusClass = "status-certain";
-    let statusLabel = "✓ GROUNDED CERTAIN — Evidencia Verificada sin Incertidumbre";
+  async function loadDemoDossier() {
+    const btn = document.getElementById("btn-demo");
+    const badge = document.getElementById("file-badge");
+    btn.disabled = true;
+    btn.textContent = "⏳ Indexando Demo...";
+    badge.textContent = "PROCESANDO";
 
-    if (data.epistemic_status === "grounded_with_uncertainty") {
-      statusClass = "status-uncertain";
-      statusLabel = "⚠ GROUNDED WITH UNCERTAINTY — Contiene Pasajes [ilegible] o Revisión Pendiente";
-    } else if (data.epistemic_status === "abstained_insufficient_evidence") {
-      statusClass = "status-abstained";
-      statusLabel = "🛡 ABSTAINED — Insuficiencia de Evidencia (Cero Alucinación)";
+    try {
+      setTenant("bufete-lex-corp", true);
+      const p1 = "Sección 1 (Objeto y Penalidades): El consorcio constructor pagará una cláusula penal por mora de 420,000 USD si supera los 180 días de ejecución.";
+      const p2 = "Sección 2 (Liquidación de Pagos): Pago número uno por 150,000 USD ejecutado en enero. Pago número dos por 270,000 USD con sello notarial parcialmente [ilegible] en marzo.";
+
+      const res = await fetch("/v1/documents/ingest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Tenant-Id": state.tenantId,
+          "X-Project-Id": state.projectId
+        },
+        body: JSON.stringify({
+          job_id: "job-demo-" + Date.now(),
+          document_id: "doc-laudo-904",
+          filename: "laudo_arbitral_demo.pdf",
+          raw_content_text: "%PDF-1.7 " + p1 + " " + p2,
+          pages: [
+            { page_number: 1, digital_text: p1, block_type: "header" },
+            {
+              page_number: 2,
+              digital_text: p2,
+              has_complex_tables_or_diagrams: document.getElementById("toggle-routed").checked,
+              block_type: "table"
+            }
+          ]
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Error al indexar demo");
+      }
+
+      const data = await res.json();
+      badge.textContent = data.chunks_indexed + " CHUNKS";
+      showToast("✓ Demo cargada (" + data.chunks_indexed + " chunks indexados)");
+      await refreshHealth();
+      await executeQuery();
+    } catch (err) {
+      badge.textContent = "ERROR";
+      showToast("Error: " + err.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "✦ Cargar Expediente Demo (1-Clic)";
+    }
+  }
+
+  async function handleFileUpload(file) {
+    if (!file) return;
+    const label = document.getElementById("dropzone-label");
+    const badge = document.getElementById("file-badge");
+    label.textContent = "⏳ Subiendo " + file.name + "...";
+    badge.textContent = "SUBIENDO";
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result;
+        const res = await fetch("/v1/documents/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Tenant-Id": state.tenantId,
+            "X-Project-Id": state.projectId
+          },
+          body: JSON.stringify({
+            filename: file.name,
+            content_base64: base64Data,
+            force_multimodal_route_d: document.getElementById("toggle-routed").checked
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || "Formato no soportado");
+        }
+
+        const data = await res.json();
+        label.textContent = "✓ " + file.name + " (" + data.total_pages + " págs)";
+        badge.textContent = data.chunks_indexed + " CHUNKS";
+        showToast("✓ Archivo indexado: " + data.chunks_indexed + " chunks");
+        await refreshHealth();
+      } catch (err) {
+        label.textContent = "Subir archivo PDF o TXT";
+        badge.textContent = "ERROR";
+        showToast("Error: " + err.message, true);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function executeQuery() {
+    const btn = document.getElementById("btn-ask");
+    const container = document.getElementById("results-area");
+    let question = document.getElementById("query-input").value.trim();
+    if (!question) return;
+
+    if (document.getElementById("toggle-exhaustive").checked && !question.toLowerCase().includes("todos")) {
+      question = "Listar todos: " + question;
     }
 
-    const citationsHtml = (data.citations || []).map(c => `
-      <div class="citation-card">
-        <div class="citation-meta">
-          <span><strong>Chunk:</strong> ${c.chunk_id} • <strong>Pág:</strong> ${c.page_start}-${c.page_end}</span>
-          <span>RRF: ${c.rrf_score} | Rerank: ${c.rerank_score ?? "N/A"}</span>
-        </div>
-        <div style="font-size: 13px; color: var(--text-primary); margin-bottom: 6px;">
-          "${c.observed_excerpt}"
-        </div>
-        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
-          Origen GCS: ${c.source_reference}
-        </div>
-      </div>
-    `).join("");
+    btn.disabled = true;
+    btn.textContent = "Buscando...";
+    const t0 = performance.now();
 
-    const warningsHtml = (data.uncertainty_warnings || []).length > 0
-      ? `<div class="epistemic-box epistemic-warning">
-          <strong>Advertencias de Incertidumbre Documental:</strong><br/>
-          ${data.uncertainty_warnings.map(w => "• " + w).join("<br/>")}
-         </div>`
-      : "";
+    try {
+      const res = await fetch("/v1/rag/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Tenant-Id": state.tenantId,
+          "X-Project-Id": state.projectId
+        },
+        body: JSON.stringify({
+          question: question,
+          mode: state.mode,
+          top_k: state.topK,
+          budget: {
+            max_iterations: 3,
+            max_subqueries: state.maxSubqueries,
+            max_parallelism: 3,
+            max_input_tokens: 32000,
+            timeout_seconds: 30
+          }
+        })
+      });
 
-    const hypothesesHtml = (data.segregated_inferential_hypotheses || []).length > 0
-      ? `<div class="epistemic-box epistemic-hypothesis">
-          <strong>Hipótesis Inferidas Segregadas (No mezcladas con hechos):</strong><br/>
-          ${data.segregated_inferential_hypotheses.map(h => "• " + h).join("<br/>")}
+      const ms = Math.round(performance.now() - t0);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Error en consulta");
+      }
+
+      const data = await res.json();
+      renderResponse(data, ms);
+    } catch (err) {
+      container.innerHTML = `<div class="status-pill st-abstained">Error: ${err.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Consultar";
+    }
+  }
+
+  function renderResponse(data, ms) {
+    const container = document.getElementById("results-area");
+    let stClass = "st-certain";
+    let stText = "✓ EVIDENCIA VERIFICADA";
+
+    if (data.epistemic_status === "grounded_with_uncertainty") {
+      stClass = "st-uncertain";
+      stText = "⚠ CON INCERTIDUMBRE [ILEGIBLE]";
+    } else if (data.epistemic_status === "abstained_insufficient_evidence") {
+      stClass = "st-abstained";
+      stText = "🛡 ABSTENCIÓN — SIN EVIDENCIA EN ESTE TENANT";
+    }
+
+    const cites = (data.citations || []).map(c => {
+      const pct = Math.min(100, Math.round((c.rerank_score || 0.5) * 100));
+      return `
+        <div class="cite-card">
+          <div class="cite-top">
+            <span>${c.chunk_id} • Pág ${c.page_start}-${c.page_end}</span>
+            <span>Relevancia: ${pct}% (RRF ${c.rrf_score})</span>
+          </div>
+          <div style="font-size: 13px; color: var(--text);">"${c.observed_excerpt}"</div>
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width: ${pct}%;"></div></div>
+        </div>
+      `;
+    }).join("");
+
+    const warnings = (data.uncertainty_warnings || []).length
+      ? `<div class="cite-card" style="border-color: rgba(245, 158, 11, 0.4); color: #fde68a; font-size: 12.5px;">
+          <strong>⚠ Pasajes Inciertos:</strong> ${data.uncertainty_warnings.join(" | ")}
          </div>`
       : "";
 
     container.innerHTML = `
-      <div class="status-banner ${statusClass}">
-        <span>${statusLabel}</span>
-        <span style="font-family: var(--font-mono); font-size: 11.5px;">
-          ${data.mode.toUpperCase()} • ${elapsedMs} ms • Tenant: ${data.scope.tenant_id}
-        </span>
+      <div class="status-pill ${stClass}">
+        <span>${stText}</span>
+        <span style="font-family: var(--mono); font-size: 11.5px;">${ms} ms • Top-${state.topK}</span>
       </div>
-      <div class="answer-box">${data.synthesized_answer}</div>
-      <div class="section-header" style="margin-top: 8px;">
-        <span class="section-title">Citas Documentales Verificables (${(data.citations || []).length})</span>
-        <span class="badge-tag">${data.generator_model_version}</span>
+      <div class="answer-card">${data.synthesized_answer}</div>
+      ${warnings}
+      <div style="font-size: 11.5px; color: var(--muted); text-transform: uppercase; margin: 12px 0 8px;">
+        Fuentes Citadas (${(data.citations || []).length})
       </div>
-      <div class="evidence-grid">${citationsHtml}</div>
-      ${warningsHtml}
-      ${hypothesesHtml}
+      ${cites}
     `;
   }
 
-  refreshHealth();
+  // Bind all interactive controls safely on DOM ready
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("btn-demo").addEventListener("click", loadDemoDossier);
+    document.getElementById("btn-ask").addEventListener("click", executeQuery);
+    document.getElementById("query-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") executeQuery();
+    });
+
+    document.getElementById("btn-tenant-a").addEventListener("click", () => setTenant("bufete-lex-corp", true));
+    document.getElementById("btn-tenant-b").addEventListener("click", () => setTenant("auditoria-externa-z", false));
+    document.getElementById("btn-mode-hybrid").addEventListener("click", () => setMode("standard_hybrid"));
+    document.getElementById("btn-mode-agentic").addEventListener("click", () => setMode("deep_agentic"));
+
+    const knobTopK = document.getElementById("knob-topk");
+    knobTopK.addEventListener("input", e => {
+      state.topK = parseInt(e.target.value, 10);
+      document.getElementById("val-topk").textContent = state.topK;
+    });
+
+    const knobSubq = document.getElementById("knob-subq");
+    knobSubq.addEventListener("input", e => {
+      state.maxSubqueries = parseInt(e.target.value, 10);
+      document.getElementById("val-subq").textContent = state.maxSubqueries;
+    });
+
+    const dz = document.getElementById("dropzone");
+    const fi = document.getElementById("file-input");
+    dz.addEventListener("click", () => fi.click());
+    fi.addEventListener("change", e => handleFileUpload(e.target.files[0]));
+    dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("dragover"); });
+    dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+    dz.addEventListener("drop", e => {
+      e.preventDefault();
+      dz.classList.remove("dragover");
+      if (e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]);
+    });
+
+    document.querySelectorAll(".chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        document.getElementById("query-input").value = chip.getAttribute("data-q");
+        setMode(chip.getAttribute("data-m"));
+        executeQuery();
+      });
+    });
+
+    refreshHealth();
+  });
 </script>
 </body>
 </html>

@@ -12,6 +12,7 @@ from rag_platform.api.schemas import (
     HealthResponse,
     IngestDocumentRequest,
     IngestDocumentResponse,
+    UploadBinaryDocumentRequest,
 )
 
 __all__ = [
@@ -21,6 +22,7 @@ __all__ = [
     "HealthResponse",
     "IngestDocumentRequest",
     "IngestDocumentResponse",
+    "UploadBinaryDocumentRequest",
     "app",
     "build_default_orchestrator",
     "create_app",

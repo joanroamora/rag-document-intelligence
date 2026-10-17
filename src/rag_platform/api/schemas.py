@@ -59,3 +59,13 @@ class DeleteDocumentResponse(BaseModel):
     document_id: str = Field(..., min_length=1)
     deleted_vector_chunks: int = Field(..., ge=0)
     deleted_lexical_chunks: int = Field(..., ge=0)
+
+
+class UploadBinaryDocumentRequest(BaseModel):
+    """Payload for POST /v1/documents/upload accepting a Base64-encoded PDF/TXT/RTF/DOCX file."""
+
+    filename: str = Field(..., min_length=1)
+    content_base64: str = Field(..., min_length=1)
+    document_id: str | None = Field(default=None)
+    case_id: str | None = Field(default=None)
+    force_multimodal_route_d: bool = Field(default=False)

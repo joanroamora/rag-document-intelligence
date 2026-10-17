@@ -1,11 +1,16 @@
 """Cloud Run FastAPI application exposing the multi-tenant RAG Platform."""
 
+import base64
+import io
 import os
+import re
+import uuid
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.responses import HTMLResponse
 from pydantic import ValidationError
+from pypdf import PdfReader
 
 from rag_platform.adapters import (
     GeminiClientConfig,
@@ -19,6 +24,7 @@ from rag_platform.api.schemas import (
     HealthResponse,
     IngestDocumentRequest,
     IngestDocumentResponse,
+    UploadBinaryDocumentRequest,
 )
 from rag_platform.api.ui import ENTERPRISE_UI_HTML
 from rag_platform.contracts import GeneratedRAGResponse, TenantScope, UsageMode
@@ -122,6 +128,62 @@ def require_tenant_headers(
 TenantHeadersDep = Annotated[tuple[str, str], Depends(require_tenant_headers)]
 
 
+def _extract_pages_from_bytes(
+    *,
+    filename: str,
+    raw_bytes: bytes,
+    force_route_d: bool = False,
+) -> list[RawPageInput]:
+    """Extract RawPageInput items from uploaded PDF, TXT, RTF, or DOCX bytes."""
+    if not raw_bytes:
+        raise ValueError("Uploaded file is empty")
+
+    block_kind = "table" if force_route_d else "paragraph"
+    lower_name = filename.lower()
+
+    if lower_name.endswith(".pdf"):
+        try:
+            reader = PdfReader(io.BytesIO(raw_bytes))
+            pages: list[RawPageInput] = []
+            for idx, pdf_page in enumerate(reader.pages, start=1):
+                txt = (pdf_page.extract_text() or "").strip()
+                pages.append(
+                    RawPageInput(
+                        page_number=idx,
+                        digital_text=txt if txt else None,
+                        has_complex_tables_or_diagrams=force_route_d,
+                        block_type=block_kind,
+                    )
+                )
+            if pages:
+                return pages
+        except Exception:
+            pass
+
+    decoded = raw_bytes.decode("utf-8", errors="ignore")
+    cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", decoded).strip()
+    if not cleaned:
+        cleaned = "[ilegible]"
+
+    chunks = [
+        cleaned[i : i + 1800].strip()
+        for i in range(0, len(cleaned), 1800)
+        if cleaned[i : i + 1800].strip()
+    ]
+    if not chunks:
+        chunks = ["[ilegible]"]
+
+    return [
+        RawPageInput(
+            page_number=idx,
+            digital_text=part,
+            has_complex_tables_or_diagrams=force_route_d,
+            block_type=block_kind,
+        )
+        for idx, part in enumerate(chunks, start=1)
+    ]
+
+
 def create_app(
     orchestrator: RAGPlatformOrchestrator | None = None,
     default_bucket: str | None = None,
@@ -181,6 +243,55 @@ def create_app(
                 bucket_name=bucket_name,
                 byte_stream=[payload.raw_content_text.encode()],
                 pages=payload.pages,
+            )
+        except (UnsupportedDocumentError, ValidationError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
+
+        return IngestDocumentResponse(
+            receipt=receipt,
+            total_pages=norm_doc.total_pages,
+            chunks_indexed=len(chunks),
+            chunk_ids=[c.chunk_id for c in chunks],
+        )
+
+    @application.post(
+        "/v1/documents/upload",
+        response_model=IngestDocumentResponse,
+        status_code=status.HTTP_201_CREATED,
+    )
+    def upload_binary_document(
+        payload: UploadBinaryDocumentRequest,
+        tenant_headers: TenantHeadersDep,
+    ) -> IngestDocumentResponse:
+        tenant_id, project_id = tenant_headers
+        try:
+            raw_b64 = payload.content_base64
+            if "," in raw_b64:
+                raw_b64 = raw_b64.split(",", 1)[1]
+            raw_bytes = base64.b64decode(raw_b64)
+            pages = _extract_pages_from_bytes(
+                filename=payload.filename,
+                raw_bytes=raw_bytes,
+                force_route_d=payload.force_multimodal_route_d,
+            )
+            doc_id = payload.document_id or f"doc-{uuid.uuid4().hex[:8]}"
+            job_id = f"job-{uuid.uuid4().hex[:8]}"
+            scope = TenantScope(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                case_id=payload.case_id,
+            )
+            receipt, norm_doc, chunks = active_orchestrator.ingest_document(
+                job_id=job_id,
+                document_id=doc_id,
+                filename=payload.filename,
+                scope=scope,
+                bucket_name=bucket_name,
+                byte_stream=[raw_bytes],
+                pages=pages,
             )
         except (UnsupportedDocumentError, ValidationError, ValueError) as exc:
             raise HTTPException(
