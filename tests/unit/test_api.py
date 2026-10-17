@@ -7,8 +7,13 @@ from rag_platform.contracts import AnswerEpistemicStatus, RetrievalMode
 
 
 def test_health_and_missing_tenant_headers_rejected() -> None:
-    """Verify GET /health and HTTP 403 when X-Tenant-Id or X-Project-Id is missing."""
+    """Verify GET /, GET /health, and HTTP 403 when tenant headers are missing."""
     client = TestClient(create_app())
+
+    ui_res = client.get("/")
+    assert ui_res.status_code == 200
+    assert "text/html" in ui_res.headers["content-type"]
+    assert "AETHER RAG — Enterprise Document Intelligence" in ui_res.text
 
     health = client.get("/health")
     assert health.status_code == 200

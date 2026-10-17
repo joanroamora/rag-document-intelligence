@@ -54,8 +54,11 @@ jobs:
           echo "Running terraform destroy for environment: ${{ inputs.target_env }}"
           terraform destroy -auto-approve
 
-      - name: Cleanup Terraform State Bucket for 100% Zero Cost
+      - name: Cleanup Cloud Run, Artifact Registry & State Bucket for 100% Zero Cost
         run: |
+          echo "Deleting Cloud Run service and Artifact Registry repository if present..."
+          gcloud run services delete "rag-api-${{ inputs.target_env }}" --region=us-central1 --project=bitcitychamp-project --quiet || true
+          gcloud artifacts repositories delete "rag-containers-${{ inputs.target_env }}" --location=us-central1 --project=bitcitychamp-project --quiet || true
           echo "Deleting Terraform state bucket non-interactively..."
           gcloud storage buckets delete gs://bitcitychamp-project-tfstate --quiet || true
           echo "GCP resources have been completely wiped to zero cost."

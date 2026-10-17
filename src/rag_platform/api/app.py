@@ -4,6 +4,7 @@ import os
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi.responses import HTMLResponse
 from pydantic import ValidationError
 
 from rag_platform.adapters import (
@@ -19,6 +20,7 @@ from rag_platform.api.schemas import (
     IngestDocumentRequest,
     IngestDocumentResponse,
 )
+from rag_platform.api.ui import ENTERPRISE_UI_HTML
 from rag_platform.contracts import GeneratedRAGResponse, TenantScope, UsageMode
 from rag_platform.generation import GroundedAnswerGenerator
 from rag_platform.indexing import (
@@ -137,6 +139,10 @@ def create_app(
         version="0.1.0",
         description="Multi-format document RAG with verifiable evidence and tenant isolation.",
     )
+
+    @application.get("/", response_class=HTMLResponse, include_in_schema=False)
+    def get_enterprise_ui() -> HTMLResponse:
+        return HTMLResponse(content=ENTERPRISE_UI_HTML)
 
     @application.get("/health", response_model=HealthResponse)
     def get_health() -> HealthResponse:
