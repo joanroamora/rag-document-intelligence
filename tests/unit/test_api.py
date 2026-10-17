@@ -144,7 +144,11 @@ def test_api_ingest_ask_isolation_and_delete_lifecycle() -> None:
         },
     )
     assert ask_exh.status_code == 200
-    assert ask_exh.json()["epistemic_status"] == AnswerEpistemicStatus.GROUNDED_CERTAIN
+    assert (
+        ask_exh.json()["epistemic_status"]
+        == AnswerEpistemicStatus.GROUNDED_WITH_UNCERTAINTY
+    )
+    assert len(ask_exh.json()["citations"]) == 2
     assert "500,000 USD" in ask_exh.json()["synthesized_answer"]
 
     # 6. Cross-tenant ask from tenant-bufete-b must abstain with zero data leakage
