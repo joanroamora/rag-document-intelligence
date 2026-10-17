@@ -6,6 +6,12 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from pydantic import ValidationError
 
+from rag_platform.adapters import (
+    GeminiClientConfig,
+    GeminiGroundedSynthesizer,
+    GeminiMultimodalRouteExtractor,
+    GeminiRESTClient,
+)
 from rag_platform.api.schemas import (
     AskQuestionRequest,
     DeleteDocumentResponse,
@@ -14,8 +20,10 @@ from rag_platform.api.schemas import (
     IngestDocumentResponse,
 )
 from rag_platform.contracts import GeneratedRAGResponse, TenantScope, UsageMode
+from rag_platform.generation import GroundedAnswerGenerator
 from rag_platform.indexing import (
     DeterministicHashEmbedder,
+    GeminiFreeTierEmbedder,
     InMemoryMultiTenantVectorStore,
     VectorIndexingService,
 )
@@ -26,6 +34,7 @@ from rag_platform.processing import (
     ExtractedPagePayload,
     IntelligentExtractionRouter,
     RawPageInput,
+    RouteExtractorBackend,
     RoutingDecision,
     UnsupportedDocumentError,
 )
@@ -48,17 +57,37 @@ class DefaultCloudExtractor:
         )
 
 
-def build_default_orchestrator() -> RAGPlatformOrchestrator:
-    """Build a standard RAGPlatformOrchestrator instance for Cloud Run execution."""
+def build_default_orchestrator(
+    gemini_api_key: str | None = None,
+) -> RAGPlatformOrchestrator:
+    """Build a RAGPlatformOrchestrator wired for Cloud Run (Gemini Free Tier or CPU)."""
+    resolved_key = gemini_api_key or (
+        os.getenv("GEMINI_API_KEY")
+        if os.getenv("USE_LIVE_GEMINI_API", "").lower() == "true"
+        else None
+    )
+
+    if resolved_key and resolved_key.strip():
+        client = GeminiRESTClient(GeminiClientConfig(api_key=resolved_key.strip()))
+        extractor: RouteExtractorBackend = GeminiMultimodalRouteExtractor(client)
+        embedder = GeminiFreeTierEmbedder(transport_fn=client.batch_embed_contents)
+        generator = GroundedAnswerGenerator(
+            synthesizer=GeminiGroundedSynthesizer(client)
+        )
+    else:
+        extractor = DefaultCloudExtractor()
+        embedder = DeterministicHashEmbedder()  # type: ignore[assignment]
+        generator = GroundedAnswerGenerator()
+
     doc_pipeline = DocumentProcessingPipeline(
         normalizer=DocumentNormalizer(
             router=IntelligentExtractionRouter(),
-            extractor=DefaultCloudExtractor(),
+            extractor=extractor,
         )
     )
     hybrid_retriever = HybridRetriever(
         vector_service=VectorIndexingService(
-            embedder=DeterministicHashEmbedder(),
+            embedder=embedder,
             vector_store=InMemoryMultiTenantVectorStore(),
         ),
         lexical_index=BM25LexicalIndex(),
@@ -66,6 +95,7 @@ def build_default_orchestrator() -> RAGPlatformOrchestrator:
     return RAGPlatformOrchestrator(
         document_pipeline=doc_pipeline,
         hybrid_retriever=hybrid_retriever,
+        answer_generator=generator,
     )
 
 
