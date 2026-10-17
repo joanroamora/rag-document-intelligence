@@ -326,7 +326,7 @@ def create_app(
     )
     async def upload_document_multipart(
         tenant_headers: TenantHeadersDep,
-        file: UploadFile = File(...),
+        file: Annotated[UploadFile, File()],
         force_multimodal_route_d: bool = False,
         case_id: str | None = None,
     ) -> IngestDocumentResponse:
