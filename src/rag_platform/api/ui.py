@@ -491,6 +491,16 @@ ENTERPRISE_UI_HTML = r"""<!DOCTYPE html>
         <div class="dropzone-sub">Arrastra aquí o haz clic para explorar</div>
       </div>
 
+      <div id="progress-container" style="display: none; margin-bottom: 12px; background: rgba(10, 14, 22, 0.65); padding: 12px; border-radius: 14px; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+          <span id="progress-status" style="color: var(--muted); font-weight: 500;">Subiendo archivo...</span>
+          <span id="progress-percent" style="font-family: var(--mono); color: #93c5fd; font-weight: 700;">0%</span>
+        </div>
+        <div style="height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 999px; overflow: hidden;">
+          <div id="progress-bar-fill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #10b981); border-radius: 999px; transition: width 0.2s ease;"></div>
+        </div>
+      </div>
+
       <button class="btn btn-ghost" id="btn-demo">
         ✦ Cargar Expediente Demo (1-Clic)
       </button>
@@ -693,71 +703,121 @@ ENTERPRISE_UI_HTML = r"""<!DOCTYPE html>
     }
   }
 
-  async function handleFileUpload(file) {
+  function handleFileUpload(file) {
     if (!file) return;
     const label = document.getElementById("dropzone-label");
     const badge = document.getElementById("file-badge");
     const container = document.getElementById("results-area");
+    const progBox = document.getElementById("progress-container");
+    const progStatus = document.getElementById("progress-status");
+    const progPercent = document.getElementById("progress-percent");
+    const progFill = document.getElementById("progress-bar-fill");
+
     label.textContent = "⏳ Subiendo " + file.name + "...";
-    badge.textContent = "SUBIENDO";
+    badge.textContent = "0%";
     badge.style.color = "#93c5fd";
+
+    progBox.style.display = "block";
+    progFill.style.width = "0%";
+    progFill.style.background = "linear-gradient(90deg, #3b82f6, #10b981)";
+    progPercent.textContent = "0%";
+    progStatus.textContent = "Iniciando carga de " + file.name + "...";
 
     const formData = new FormData();
     formData.append("file", file);
     formData.append("force_multimodal_route_d", document.getElementById("toggle-routed").checked);
 
-    try {
-      const res = await fetch("/v1/documents/upload-file", {
-        method: "POST",
-        headers: {
-          "X-Tenant-Id": state.tenantId,
-          "X-Project-Id": state.projectId
-        },
-        body: formData
-      });
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/v1/documents/upload-file", true);
+    xhr.setRequestHeader("X-Tenant-Id", state.tenantId);
+    xhr.setRequestHeader("X-Project-Id", state.projectId);
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "Error al procesar el archivo");
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        progFill.style.width = pct + "%";
+        progPercent.textContent = pct + "%";
+        badge.textContent = pct + "%";
+        if (pct < 100) {
+          progStatus.textContent = "Transmitiendo archivo (" + pct + "%)...";
+        } else {
+          progStatus.textContent = "Archivo recibido. Indexando páginas y extrayendo texto...";
+          badge.textContent = "INDEXANDO";
+        }
       }
+    });
 
-      const data = await res.json();
-      label.textContent = "✓ " + file.name + " (" + data.total_pages + " págs)";
-      badge.textContent = data.chunks_indexed + " CHUNKS";
-      badge.style.color = "var(--emerald)";
-      showToast("✓ Archivo indexado: " + data.chunks_indexed + " chunks");
+    xhr.onload = async () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          progFill.style.width = "100%";
+          progPercent.textContent = "100%";
+          progStatus.textContent = "✓ Completado (" + data.chunks_indexed + " chunks indexados)";
+          label.textContent = "✓ " + file.name + " (" + data.total_pages + " págs)";
+          badge.textContent = data.chunks_indexed + " CHUNKS";
+          badge.style.color = "var(--emerald)";
+          showToast("✓ Archivo indexado: " + data.chunks_indexed + " chunks");
 
-      const queryInput = document.getElementById("query-input");
-      if (queryInput.value.includes("cláusula penal")) {
-        queryInput.value = "¿De qué trata este documento y cuáles son sus hechos principales?";
+          const queryInput = document.getElementById("query-input");
+          if (queryInput.value.includes("cláusula penal")) {
+            queryInput.value = "¿En qué año ocurrieron los hechos y dónde?";
+          }
+
+          container.innerHTML = `
+            <div class="status-pill st-certain">
+              <span>✓ DOCUMENTO INDEXADO CON ÉXITO</span>
+              <span style="font-family: var(--mono); font-size: 11.5px;">${data.total_pages} págs • ${data.chunks_indexed} chunks</span>
+            </div>
+            <div class="answer-card" style="color: #cbd5e1; font-size: 13.5px;">
+              Se indexaron <strong>${data.chunks_indexed} fragmentos</strong> de <strong>${file.name}</strong> (${data.total_pages} páginas) en el espacio <code>${state.tenantId}</code>.<br/><br/>
+              Ya está listo para consultas con citas verificables. Escribe tu pregunta arriba y pulsa <strong>Consultar</strong>.
+            </div>
+          `;
+          await refreshHealth();
+        } catch (e) {
+          showUploadError("Error interpretando la respuesta del servidor.");
+        }
+      } else {
+        let errorDetail = "Error en el servidor (" + xhr.status + ")";
+        try {
+          const errJson = JSON.parse(xhr.responseText);
+          errorDetail = errJson.detail || errorDetail;
+        } catch (_) {
+          if (xhr.status === 413) {
+            errorDetail = "El archivo supera el límite de 32 MB permitido por el servidor.";
+          } else if (xhr.status === 504 || xhr.status === 502) {
+            errorDetail = "El servidor agotó el tiempo de espera procesando este documento.";
+          }
+        }
+        showUploadError(errorDetail);
       }
+    };
 
-      container.innerHTML = `
-        <div class="status-pill st-certain">
-          <span>✓ DOCUMENTO INDEXADO CON ÉXITO</span>
-          <span style="font-family: var(--mono); font-size: 11.5px;">${data.total_pages} págs • ${data.chunks_indexed} chunks</span>
-        </div>
-        <div class="answer-card" style="color: #cbd5e1; font-size: 13.5px;">
-          Se indexaron <strong>${data.chunks_indexed} fragmentos</strong> de <strong>${file.name}</strong> (${data.total_pages} páginas) en el espacio <code>${state.tenantId}</code>.<br/><br/>
-          Ya está listo para consultas con citas verificables. Escribe tu pregunta arriba y pulsa <strong>Consultar</strong>.
-        </div>
-      `;
-      await refreshHealth();
-    } catch (err) {
+    xhr.onerror = () => {
+      showUploadError("Fallo de conexión de red al conectar con Cloud Run.");
+    };
+
+    function showUploadError(msg) {
+      progFill.style.background = "var(--rose)";
+      progStatus.textContent = "⚠ Error al procesar";
+      progPercent.textContent = "Error";
       label.textContent = "Subir archivo PDF o TXT";
       badge.textContent = "ERROR";
       badge.style.color = "var(--rose)";
-      showToast("Error: " + err.message, true);
+      showToast("Error: " + msg, true);
       container.innerHTML = `
         <div class="status-pill st-abstained">
           <span>⚠ ERROR AL SUBIR O PROCESAR DOCUMENTO</span>
         </div>
         <div class="answer-card" style="border-color: rgba(244, 63, 94, 0.4); color: #fca5a5; font-size: 13.5px;">
-          <strong>Detalle del error:</strong> ${err.message}<br/><br/>
+          <strong>Detalle del error:</strong> ${msg}<br/><br/>
           <em>Si el PDF es un escaneo de imágenes sin texto digital, activa el switch <strong>'Visión Tablas (Ruta D Flash)'</strong> a la izquierda para procesarlo con visión multimodal.</em>
         </div>
       `;
     }
+
+    xhr.send(formData);
   }
 
   async function executeQuery() {
