@@ -34,40 +34,45 @@ jobs:
 
       - name: Enable Cloud Run & Artifact Registry APIs and ensure repository exists
         run: |
-          gcloud config set project "${{ secrets.GCP_PROJECT_ID }}"
-          gcloud services enable artifactregistry.googleapis.com run.googleapis.com
-          if ! gcloud artifacts repositories describe "$AR_REPO" --location="$GCP_REGION" >/dev/null 2>&1; then
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+          PROJECT_ID="${PROJECT_ID:-bitcitychamp-project}"
+          echo "RESOLVED_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
+          gcloud config set project "$PROJECT_ID"
+          gcloud services enable artifactregistry.googleapis.com run.googleapis.com --project="$PROJECT_ID"
+          if ! gcloud artifacts repositories describe "$AR_REPO" --location="$GCP_REGION" --project="$PROJECT_ID" >/dev/null 2>&1; then
             gcloud artifacts repositories create "$AR_REPO" \
               --repository-format=docker \
               --location="$GCP_REGION" \
+              --project="$PROJECT_ID" \
               --description="RAG Platform container repository (DEV)"
           fi
           gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
 
       - name: Build and Push Immutable Container Image
         run: |
-          IMAGE_URI="${GCP_REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${AR_REPO}/rag-api:${{ github.sha }}"
+          IMAGE_URI="${GCP_REGION}-docker.pkg.dev/${RESOLVED_PROJECT_ID}/${AR_REPO}/rag-api:${{ github.sha }}"
           docker build -t "$IMAGE_URI" .
           docker push "$IMAGE_URI"
           DIGEST=$(gcloud artifacts docker images describe "$IMAGE_URI" --format='get(image_summary.digest)')
-          echo "IMMUTABLE_IMAGE=${GCP_REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${AR_REPO}/rag-api@${DIGEST}" >> "$GITHUB_ENV"
+          echo "IMMUTABLE_IMAGE=${GCP_REGION}-docker.pkg.dev/${RESOLVED_PROJECT_ID}/${AR_REPO}/rag-api@${DIGEST}" >> "$GITHUB_ENV"
 
       - name: Deploy Service to Cloud Run (Scale-to-Zero Free Tier Friendly)
         run: |
           gcloud run deploy "$SERVICE_NAME" \
             --image="$IMMUTABLE_IMAGE" \
             --region="$GCP_REGION" \
+            --project="$RESOLVED_PROJECT_ID" \
             --platform=managed \
             --allow-unauthenticated \
             --min-instances=0 \
             --max-instances=2 \
             --cpu=1 \
             --memory=512Mi \
-            --set-env-vars="ENVIRONMENT=dev,USE_LIVE_GEMINI_API=${{ inputs.use_live_gemini }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},GCS_DOCUMENTS_BUCKET=${{ secrets.GCP_PROJECT_ID }}-rag-documents-dev"
+            --set-env-vars="ENVIRONMENT=dev,USE_LIVE_GEMINI_API=${{ inputs.use_live_gemini }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},GCS_DOCUMENTS_BUCKET=${RESOLVED_PROJECT_ID}-rag-documents-dev"
 
       - name: Output Cloud Run Live URL
         run: |
-          SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region="$GCP_REGION" --format='value(status.url)')
+          SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region="$GCP_REGION" --project="$RESOLVED_PROJECT_ID" --format='value(status.url)')
           echo "### 🚀 AETHER RAG Enterprise UI Deployed!" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Live Console URL:** $SERVICE_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Health Endpoint:** ${SERVICE_URL}/health" >> "$GITHUB_STEP_SUMMARY"
