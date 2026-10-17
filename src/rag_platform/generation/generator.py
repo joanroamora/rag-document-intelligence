@@ -180,6 +180,16 @@ class GroundedAnswerGenerator:
             generator_model_version=self.config.model_version,
         )
 
+    @staticmethod
+    def _extract_hypothesis_phrase(note: str) -> str:
+        """Extract the core hypothesis text from a formatted chunk inference note."""
+        cleaned = note.strip()
+        if "]: " in cleaned:
+            cleaned = cleaned.split("]: ", 1)[1]
+        if " — Motivo:" in cleaned:
+            cleaned = cleaned.split(" — Motivo:", 1)[0]
+        return cleaned.strip().lower()
+
     def _verify_claims_and_epistemic_boundaries(
         self,
         *,
@@ -195,10 +205,10 @@ class GroundedAnswerGenerator:
 
         allowed_ids = {it.citation.chunk_id for it in evidence_items}
         all_inferred_notes = [
-            note.strip().lower()
+            self._extract_hypothesis_phrase(note)
             for it in evidence_items
             for note in it.inferred_context_notes
-            if note.strip()
+            if self._extract_hypothesis_phrase(note)
         ]
 
         for claim in claims:

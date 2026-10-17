@@ -248,8 +248,9 @@ class HybridRetriever:
             section_peers = [c for c in all_peers if c.chunk_id != primary.chunk_id]
 
         has_uncertainty = (
-            primary.transcription_uncertainty > 0.0
+            primary.transcription_uncertainty >= 0.15
             or "[ilegible]" in primary.normalized_text.lower()
+            or "[incierto" in primary.normalized_text.lower()
         )
         citation = EvidenceCitation(
             chunk_id=primary.chunk_id,
