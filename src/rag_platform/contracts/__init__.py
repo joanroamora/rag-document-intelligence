@@ -18,6 +18,11 @@ from rag_platform.contracts.embedding import (
     VectorIndexRecord,
     assert_embedding_compatibility,
 )
+from rag_platform.contracts.generation import (
+    AnswerEpistemicStatus,
+    GeneratedRAGResponse,
+    GroundedClaim,
+)
 from rag_platform.contracts.retrieval import (
     AgenticQueryPlan,
     EvidenceCitation,
@@ -29,6 +34,7 @@ from rag_platform.contracts.tenant import TenantScope, UsageMode
 
 __all__ = [
     "AgenticQueryPlan",
+    "AnswerEpistemicStatus",
     "BoundingBox",
     "ChunkRecord",
     "DocumentFormat",
@@ -39,6 +45,8 @@ __all__ = [
     "EpistemicStatus",
     "EvidenceCitation",
     "ExtractionRoute",
+    "GeneratedRAGResponse",
+    "GroundedClaim",
     "HumanReviewStatus",
     "NormalizedBlock",
     "NormalizedDocument",
