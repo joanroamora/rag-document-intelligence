@@ -1,6 +1,9 @@
 name: CD — Deploy RAG Service & UI to Cloud Run (DEV)
 
 on:
+  push:
+    branches:
+      - dev
   workflow_dispatch:
     inputs:
       use_live_gemini:
@@ -99,7 +102,7 @@ jobs:
             --max-instances=2 \
             --cpu=1 \
             --memory=512Mi \
-            --set-env-vars="ENVIRONMENT=dev,USE_LIVE_GEMINI_API=${{ inputs.use_live_gemini }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},GCS_DOCUMENTS_BUCKET=${RESOLVED_PROJECT_ID}-rag-documents-dev"
+            --set-env-vars="ENVIRONMENT=dev,USE_LIVE_GEMINI_API=${{ inputs.use_live_gemini || 'false' }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},GCS_DOCUMENTS_BUCKET=${RESOLVED_PROJECT_ID}-rag-documents-dev"
 
       - name: Output Cloud Run Live URL
         run: |
